@@ -1,5 +1,6 @@
 use actix_web::HttpRequest;
 use bytes::Bytes;
+#[allow(unused_imports)]
 use napi::bindgen_prelude::*;
 use std::collections::HashMap;
 use serde::Serialize;

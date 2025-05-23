@@ -126,7 +126,7 @@ pub fn execute_callback_with_request(
 }
 
 /// 执行JavaScript回调函数（兼容旧接口）
-pub fn execute_callback(callback: &CallBackFunction, method: String, path: String, query: String) {
+pub fn execute_callback(_callback: &CallBackFunction, _method: String, _path: String, _query: String) {
   // 创建一个临时的RequestWrapper（这里只是为了兼容，实际使用中应该传递真实的RequestWrapper）
   println!("警告：使用了旧的execute_callback接口，建议使用execute_callback_with_request");
   // 这里我们不能创建假的RequestWrapper，所以暂时保持空实现
