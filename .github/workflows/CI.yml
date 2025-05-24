@@ -123,7 +123,7 @@ jobs:
         shell: bash
       - name: Setup node x86
         if: matrix.settings.target == 'i686-pc-windows-msvc'
-        run: yarn config set supportedArchitectures.cpu "ia32"
+        run: echo "Setting up for i686 architecture"
         shell: bash
       - name: Install dependencies
         run: pnpm install
@@ -140,7 +140,11 @@ jobs:
         with:
           image: ${{ matrix.settings.docker }}
           options: '--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build'
-          run: ${{ matrix.settings.build }}
+          run: |
+            corepack enable
+            corepack prepare pnpm@8 --activate
+            pnpm install
+            ${{ matrix.settings.build }}
       - name: Build
         run: ${{ matrix.settings.build }}
         if: ${{ !matrix.settings.docker }}
