@@ -87,20 +87,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         if: ${{ !matrix.settings.docker }}
         with:
-          version: 8
-      - name: Fallback pnpm installation
-        if: ${{ !matrix.settings.docker }}
-        run: |
-          if ! command -v pnpm &> /dev/null; then
-            echo "pnpm not found, installing manually..."
-            npm install -g pnpm@8
-          else
-            echo "pnpm is already available"
-          fi
-        shell: bash
+          version: 10
+          run_install: false
       - name: Setup node
         uses: actions/setup-node@v4
         if: ${{ !matrix.settings.docker }}
@@ -152,7 +143,7 @@ jobs:
           options: '--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build'
           run: |
             corepack enable
-            corepack prepare pnpm@8 --activate
+            corepack prepare pnpm@10 --activate
             pnpm install
             ${{ matrix.settings.build }}
       - name: Build
@@ -185,7 +176,7 @@ jobs:
           shell: bash
           run: |
             sudo pkg install -y -f curl node libnghttp2 npm
-            sudo npm install -g pnpm --ignore-scripts
+            sudo npm install -g pnpm@10 --ignore-scripts
             curl https://sh.rustup.rs -sSf --output rustup.sh
             sh rustup.sh -y --profile minimal --default-toolchain stable
             source "$HOME/.cargo/env"
@@ -230,18 +221,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - name: Fallback pnpm installation
-        run: |
-          if ! command -v pnpm &> /dev/null; then
-            echo "pnpm not found, installing manually..."
-            npm install -g pnpm@8
-          else
-            echo "pnpm is already available"
-          fi
-        shell: bash
+          version: 10
+          run_install: false
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -274,18 +257,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - name: Fallback pnpm installation
-        run: |
-          if ! command -v pnpm &> /dev/null; then
-            echo "pnpm not found, installing manually..."
-            npm install -g pnpm@8
-          else
-            echo "pnpm is already available"
-          fi
-        shell: bash
+          version: 10
+          run_install: false
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -302,7 +277,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "corepack enable && corepack prepare pnpm@8 --activate && pnpm test"
+        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "corepack enable && corepack prepare pnpm@10 --activate && pnpm test"
   test-linux-x64-musl-binding:
     name: Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
     needs:
@@ -317,18 +292,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - name: Fallback pnpm installation
-        run: |
-          if ! command -v pnpm &> /dev/null; then
-            echo "pnpm not found, installing manually..."
-            npm install -g pnpm@8
-          else
-            echo "pnpm is already available"
-          fi
-        shell: bash
+          version: 10
+          run_install: false
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -345,7 +312,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "corepack enable && corepack prepare pnpm@8 --activate && pnpm test"
+        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "corepack enable && corepack prepare pnpm@10 --activate && pnpm test"
   test-linux-aarch64-gnu-binding:
     name: Test bindings on aarch64-unknown-linux-gnu - node@${{ matrix.node }}
     needs:
@@ -370,7 +337,7 @@ jobs:
       - name: Install dependencies
         run: |
           corepack enable
-          corepack prepare pnpm@8 --activate
+          corepack prepare pnpm@10 --activate
           pnpm install
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -385,7 +352,7 @@ jobs:
           run: |
             set -e
             corepack enable
-            corepack prepare pnpm@8 --activate
+            corepack prepare pnpm@10 --activate
             pnpm test
             ls -la
   test-linux-aarch64-musl-binding:
@@ -406,7 +373,7 @@ jobs:
       - name: Install dependencies
         run: |
           corepack enable
-          corepack prepare pnpm@8 --activate
+          corepack prepare pnpm@10 --activate
           pnpm install
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -421,7 +388,7 @@ jobs:
           run: |
             set -e
             corepack enable
-            corepack prepare pnpm@8 --activate
+            corepack prepare pnpm@10 --activate
             pnpm test
   test-linux-arm-gnueabihf-binding:
     name: Test bindings on armv7-unknown-linux-gnueabihf - node@${{ matrix.node }}
@@ -447,7 +414,7 @@ jobs:
       - name: Install dependencies
         run: |
           corepack enable
-          corepack prepare pnpm@8 --activate
+          corepack prepare pnpm@10 --activate
           pnpm install
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -462,7 +429,7 @@ jobs:
           run: |
             set -e
             corepack enable
-            corepack prepare pnpm@8 --activate
+            corepack prepare pnpm@10 --activate
             pnpm test
             ls -la
   universal-macOS:
@@ -473,18 +440,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - name: Fallback pnpm installation
-        run: |
-          if ! command -v pnpm &> /dev/null; then
-            echo "pnpm not found, installing manually..."
-            npm install -g pnpm@8
-          else
-            echo "pnpm is already available"
-          fi
-        shell: bash
+          version: 10
+          run_install: false
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -525,18 +484,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
-      - name: Fallback pnpm installation
-        run: |
-          if ! command -v pnpm &> /dev/null; then
-            echo "pnpm not found, installing manually..."
-            npm install -g pnpm@8
-          else
-            echo "pnpm is already available"
-          fi
-        shell: bash
+          version: 10
+          run_install: false
       - name: Setup node
         uses: actions/setup-node@v4
         with:
