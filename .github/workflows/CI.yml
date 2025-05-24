@@ -142,8 +142,7 @@ jobs:
           image: ${{ matrix.settings.docker }}
           options: '--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build'
           run: |
-            corepack enable
-            corepack prepare pnpm@10 --activate
+            npm install -g pnpm@10
             pnpm install
             ${{ matrix.settings.build }}
       - name: Build
@@ -277,7 +276,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "corepack enable && corepack prepare pnpm@10 --activate && pnpm test"
+        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "npm install -g pnpm@10 && pnpm test"
   test-linux-x64-musl-binding:
     name: Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
     needs:
@@ -312,7 +311,7 @@ jobs:
         run: ls -R .
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "corepack enable && corepack prepare pnpm@10 --activate && pnpm test"
+        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "npm install -g pnpm@10 && pnpm test"
   test-linux-aarch64-gnu-binding:
     name: Test bindings on aarch64-unknown-linux-gnu - node@${{ matrix.node }}
     needs:
@@ -336,8 +335,7 @@ jobs:
         shell: bash
       - name: Install dependencies
         run: |
-          corepack enable
-          corepack prepare pnpm@10 --activate
+          npm install -g pnpm@10
           pnpm install
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -351,8 +349,7 @@ jobs:
           options: '--platform linux/arm64 -v ${{ github.workspace }}:/build -w /build'
           run: |
             set -e
-            corepack enable
-            corepack prepare pnpm@10 --activate
+            npm install -g pnpm@10
             pnpm test
             ls -la
   test-linux-aarch64-musl-binding:
@@ -372,8 +369,7 @@ jobs:
         shell: bash
       - name: Install dependencies
         run: |
-          corepack enable
-          corepack prepare pnpm@10 --activate
+          npm install -g pnpm@10
           pnpm install
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -387,8 +383,7 @@ jobs:
           options: '--platform linux/arm64 -v ${{ github.workspace }}:/build -w /build'
           run: |
             set -e
-            corepack enable
-            corepack prepare pnpm@10 --activate
+            npm install -g pnpm@10
             pnpm test
   test-linux-arm-gnueabihf-binding:
     name: Test bindings on armv7-unknown-linux-gnueabihf - node@${{ matrix.node }}
@@ -413,8 +408,7 @@ jobs:
         shell: bash
       - name: Install dependencies
         run: |
-          corepack enable
-          corepack prepare pnpm@10 --activate
+          npm install -g pnpm@10
           pnpm install
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -428,8 +422,7 @@ jobs:
           options: '--platform linux/arm/v7 -v ${{ github.workspace }}:/build -w /build'
           run: |
             set -e
-            corepack enable
-            corepack prepare pnpm@10 --activate
+            npm install -g pnpm@10
             pnpm test
             ls -la
   universal-macOS:
