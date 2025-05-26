@@ -3,17 +3,13 @@ const { Server, get, post, put, patch, del, cleanupRouter, sum } = require('../i
 console.log('🚀 开始简单测试...');
 
 // 注册一个简单的路由
-get('/', (err, requestWrapper) => {
+get('/', (err, req) => {
   if (err) {
     console.log('❌ 回调出错:', err);
     return;
   }
 
-  console.log('✅ 收到请求:', {
-    method: requestWrapper.getMethod(),
-    path: requestWrapper.getPath(),
-    query: requestWrapper.getQueryString(),
-  });
+  req.sendText('hello world');
 });
 
 console.log('✅ 路由注册完成');

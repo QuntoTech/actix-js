@@ -2,55 +2,59 @@
 /* eslint-disable */
 export declare class RequestWrapper {
   /** 获取请求路径 */
-  getPath(): string
+  getPath(): string;
   /** 获取请求方法 */
-  getMethod(): string
+  getMethod(): string;
   /** 获取查询字符串 */
-  getQueryString(): string
+  getQueryString(): string;
   /** 获取查询参数作为对象 */
-getQueryParams(): {[key: string]: string}
-/** 获取原始请求体字符串 */
-getBodyString(): string
-/** 尝试将请求体解析为JSON对象 */
-getBodyJson(): {[key: string]: any}
-/** 获取指定的请求头 */
-getHeader(name: string): string | null
-/** 获取所有请求头 */
-getHeaders(): {[key: string]: string}
-/** 获取路径参数作为对象，例如路由 /api/test/:id 匹配请求 /api/test/123 时返回 {id: "123"} */
-getPathParams(): {[key: string]: string}
-/** 获取指定名称的路径参数值 */
-getPathParam(name: string): string | null
-/** 发送文本响应 */
-sendText(text: string): void
-/** 发送JSON响应 */
-sendJson(json: string): void
-/** 发送对象作为JSON响应 */
-sendObject(obj: any): void
-/** 发送空响应 */
-sendEmpty(): void
-/** 发送服务器错误响应 */
-sendError(message?: string | undefined | null): void
-/** 设置响应状态码 */
-setStatusCode(status: number): boolean
-/** 添加响应头 */
-addHeader(key: string, value: string): void
+  getQueryParams(): { [key: string]: string };
+  /** 获取原始请求体字符串 */
+  getBodyString(): string;
+  /** 尝试将请求体解析为JSON对象 */
+  getBodyJson(): { [key: string]: any };
+  /** 获取指定的请求头 */
+  getHeader(name: string): string | null;
+  /** 获取所有请求头 */
+  getHeaders(): { [key: string]: string };
+  /** 获取路径参数作为对象，例如路由 /api/test/:id 匹配请求 /api/test/123 时返回 {id: "123"} */
+  getPathParams(): { [key: string]: string };
+  /** 获取指定名称的路径参数值 */
+  getPathParam(name: string): string | null;
+  /** 发送文本响应 */
+  sendText(text: string): void;
+  /** 发送JSON响应 */
+  sendJson(json: string): void;
+  /** 发送对象作为JSON响应 */
+  sendObject(obj: any): void;
+  /** 发送空响应 */
+  sendEmpty(): void;
+  /** 发送服务器错误响应 */
+  sendError(message?: string | undefined | null): void;
+  /** 设置响应状态码 */
+  setStatusCode(status: number): boolean;
+  /** 添加响应头 */
+  addHeader(key: string, value: string): void;
 }
 
 export declare class Server {
-  constructor(options: ServerOptions)
-  start(): string
-  stop(): string
+  constructor(options: ServerOptions);
+  start(): string;
+  stop(): Promise<string>;
 }
 
 /** 清理所有路由 */
-export declare export declare function cleanupRouter(): void
+export declare function cleanupRouter(): void;
 
 /** 注册DELETE路由 */
-export declare export declare function del(route: string, callback: (...args: any[]) => any): void
+export declare function del(route: string, callback: (err: Error | null, arg: RequestWrapper) => any): void;
+
+export declare function forceCleanup(): void;
+
+export declare function forceExit(): void;
 
 /** 注册GET路由 */
-export declare export declare function get(route: string, callback: (...args: any[]) => any): void
+export declare function get(route: string, callback: (err: Error | null, arg: RequestWrapper) => any): void;
 
 /** HTTP方法枚举 */
 export declare const enum Methods {
@@ -58,24 +62,28 @@ export declare const enum Methods {
   POST = 1,
   PUT = 2,
   PATCH = 3,
-  DELETE = 4
+  DELETE = 4,
 }
 
 /** 注册新路由 */
-export declare export declare function newRoute(route: string, method: Methods, callback: (...args: any[]) => any): void
+export declare function newRoute(
+  route: string,
+  method: Methods,
+  callback: (err: Error | null, arg: RequestWrapper) => any,
+): void;
 
 /** 注册PATCH路由 */
-export declare export declare function patch(route: string, callback: (...args: any[]) => any): void
+export declare function patch(route: string, callback: (err: Error | null, arg: RequestWrapper) => any): void;
 
 /** 注册POST路由 */
-export declare export declare function post(route: string, callback: (...args: any[]) => any): void
+export declare function post(route: string, callback: (err: Error | null, arg: RequestWrapper) => any): void;
 
 /** 注册PUT路由 */
-export declare export declare function put(route: string, callback: (...args: any[]) => any): void
+export declare function put(route: string, callback: (err: Error | null, arg: RequestWrapper) => any): void;
 
 export interface ServerOptions {
-  host: string
-  port: number
+  host: string;
+  port: number;
 }
 
-export declare export declare function sum(a: number, b: number): number
+export declare function sum(a: number, b: number): number;

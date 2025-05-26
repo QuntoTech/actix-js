@@ -70,42 +70,49 @@ impl Server {
     let handle_clone = self.handle.clone();
     let host_clone = host.clone();
 
-    // 使用tokio运行时启动服务器
-    napi::tokio::spawn(async move {
-      let server = HttpServer::new(|| {
-        App::new()
-          .wrap(middleware::Logger::default())
-          // 所有路由都通过动态路由处理器处理
-          .default_service(web::route().to(handle_dynamic_route))
-      })
-      .bind(format!("{}:{}", host_clone, port))
-      .unwrap()
-      .run();
+    // 使用napi的runtime检查来确保在正确的上下文中运行
+    napi::bindgen_prelude::within_runtime_if_available(|| {
+      napi::tokio::spawn(async move {
+        let server = HttpServer::new(|| {
+          App::new()
+            .wrap(middleware::Logger::default())
+            // 所有路由都通过动态路由处理器处理
+            .default_service(web::route().to(handle_dynamic_route))
+        })
+        .bind(format!("{}:{}", host_clone, port))
+        .unwrap()
+        .run();
 
-      // 存储服务器句柄
-      {
-        let mut handle_lock = handle_clone.lock();
-        *handle_lock = Some(server.handle());
-      }
+        // 存储服务器句柄
+        {
+          let mut handle_lock = handle_clone.lock();
+          *handle_lock = Some(server.handle());
+        }
 
-      println!("✅ 服务器已启动：http://{}:{}", host_clone, port);
+        println!("✅ 服务器已启动：http://{}:{}", host_clone, port);
 
-      // 运行服务器
-      if let Err(e) = server.await {
-        eprintln!("❌ 服务器错误: {}", e);
-      }
+        // 运行服务器
+        if let Err(e) = server.await {
+          eprintln!("❌ 服务器错误: {}", e);
+        }
+      });
     });
 
     Ok(format!("服务器已启动：http://{}:{}", host, port))
   }
 
   #[napi]
-  pub fn stop(&self) -> Result<String> {
-    let mut handle_lock = self.handle.lock();
-    if let Some(handle) = handle_lock.take() {
-      napi::tokio::spawn(async move {
-        handle.stop(true).await;
-      });
+  pub async fn stop(&self) -> Result<String> {
+    // 先取出handle，避免在持有锁时await
+    let handle = {
+      let mut handle_lock = self.handle.lock();
+      handle_lock.take()
+    };
+
+    if let Some(handle) = handle {
+      // 直接await服务器停止，确保完全停止后才返回
+      handle.stop(true).await;
+      println!("✅ 服务器已完全停止");
       Ok("服务器已停止".to_string())
     } else {
       Err(napi::Error::from_reason("服务器未运行"))
@@ -167,6 +174,29 @@ async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpRespons
         path
       ))
   }
+}
+
+// 强制清理所有资源的函数
+#[napi]
+pub fn force_cleanup() -> Result<()> {
+  // 清理所有路由
+  router::store::cleanup_route();
+
+  // 等待一小段时间让清理完成
+  std::thread::sleep(std::time::Duration::from_millis(100));
+
+  Ok(())
+}
+
+// 强制退出进程（最后手段）
+#[napi]
+pub fn force_exit() -> Result<()> {
+  // 在新线程中延迟退出，给当前函数返回的时间
+  std::thread::spawn(|| {
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::process::exit(0);
+  });
+  Ok(())
 }
 
 // 简单测试函数

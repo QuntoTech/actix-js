@@ -27,10 +27,15 @@
     "@napi-rs/cli": "3.0.0-alpha.80",
     "@types/node": "^22.15.21",
     "ava": "^6.0.1",
-    "concurrently": "^9.1.2"
+    "axios": "^1.9.0",
+    "concurrently": "^9.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   },
   "ava": {
-    "timeout": "3m"
+    "timeout": "3m",
+    "extensions": ["ts"],
+    "require": ["ts-node/register"]
   },
   "engines": {
     "node": ">= 10"

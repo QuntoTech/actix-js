@@ -1,8 +1,6 @@
 use actix_web::http::Method;
 use napi::bindgen_prelude::*;
-use napi::threadsafe_function::{
-  ErrorStrategy, ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-};
+use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use serde::Serialize;
 
 use crate::request::RequestWrapper;
@@ -17,8 +15,9 @@ pub struct RequestData {
   pub params: serde_json::Map<String, serde_json::Value>,
 }
 
-// 使用RequestWrapper作为ThreadsafeFunction的类型
-pub type CallBackFunction = ThreadsafeFunction<RequestWrapper, ErrorStrategy::CalleeHandled>;
+// 使用RequestWrapper作为ThreadsafeFunction的类型，包装在Arc中以支持Clone
+use std::sync::Arc;
+pub type CallBackFunction = Arc<ThreadsafeFunction<RequestWrapper>>;
 
 #[napi]
 /// HTTP方法枚举
@@ -58,15 +57,12 @@ impl Methods {
 
 #[napi]
 /// 注册新路由
-pub fn new_route(route: String, method: Methods, callback: JsFunction) -> Result<()> {
-  let tsfn: CallBackFunction = callback
-    .create_threadsafe_function(0, |ctx: ThreadSafeCallContext<RequestWrapper>| {
-      // 直接传递RequestWrapper实例，不要序列化
-      Ok(vec![ctx.value])
-    })
-    .map_err(|e| napi::Error::from_reason(format!("创建线程安全函数失败: {}", e)))?;
-
-  add_new_route(&route, method, tsfn)
+pub fn new_route(
+  route: String,
+  method: Methods,
+  callback: ThreadsafeFunction<RequestWrapper>,
+) -> Result<()> {
+  add_new_route(&route, method, Arc::new(callback))
 }
 
 #[napi]
@@ -78,31 +74,31 @@ pub fn cleanup_router() -> Result<()> {
 
 #[napi]
 /// 注册GET路由
-pub fn get(route: String, callback: JsFunction) -> Result<()> {
+pub fn get(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::GET, callback)
 }
 
 #[napi]
 /// 注册POST路由
-pub fn post(route: String, callback: JsFunction) -> Result<()> {
+pub fn post(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::POST, callback)
 }
 
 #[napi]
 /// 注册PUT路由
-pub fn put(route: String, callback: JsFunction) -> Result<()> {
+pub fn put(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::PUT, callback)
 }
 
 #[napi]
 /// 注册PATCH路由
-pub fn patch(route: String, callback: JsFunction) -> Result<()> {
+pub fn patch(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::PATCH, callback)
 }
 
 #[napi]
 /// 注册DELETE路由
-pub fn del(route: String, callback: JsFunction) -> Result<()> {
+pub fn del(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::DELETE, callback)
 }
 
