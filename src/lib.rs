@@ -126,10 +126,10 @@ async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpRespons
       .unwrap_or_default();
 
     // 创建带路径参数的RequestWrapper
-    let request_wrapper = RequestWrapper::new_with_params(req, Some(body.into()), path_params);
+    let request_wrapper = RequestWrapper::new_with_params(req, Some(body), path_params);
 
     // 执行JavaScript回调，传递RequestWrapper
-    router::node_functions::execute_callback_with_request(&callback, request_wrapper);
+    router::node_functions::execute_callback_with_request(callback, request_wrapper);
 
     // 返回成功响应（简单示例）
     HttpResponse::Ok()
