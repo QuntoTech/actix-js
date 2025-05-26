@@ -1,4 +1,4 @@
-const { Server, get, post, put, patch, del, cleanupRouter, sum } = require('../index.js');
+const { Server, get, post, put, patch, del, cleanupRouter, sum } = require('../index');
 
 console.log('🚀 开始简单测试...');
 
@@ -8,11 +8,11 @@ get('/', (err, requestWrapper) => {
     console.log('❌ 回调出错:', err);
     return;
   }
-  
+
   console.log('✅ 收到请求:', {
     method: requestWrapper.getMethod(),
     path: requestWrapper.getPath(),
-    query: requestWrapper.getQueryString()
+    query: requestWrapper.getQueryString(),
   });
 });
 
@@ -20,7 +20,7 @@ console.log('✅ 路由注册完成');
 
 const server = new Server({
   host: '127.0.0.1',
-  port: 3002
+  port: 3002,
 });
 
 get('/api/test/:id', (err, req) => {
@@ -28,18 +28,18 @@ get('/api/test/:id', (err, req) => {
     console.log('❌ 回调出错:', err);
     return;
   }
-  
+
   console.log('✅ 收到请求:', {
     method: req.getMethod(),
     path: req.getPath(),
     query: req.getQueryString(),
     pathParams: req.getPathParams(),
-    id: req.getPathParam('id')
+    id: req.getPathParam('id'),
   });
 
   req.sendObject({
     id: req.getPathParam('id'),
-  })
+  });
 });
 
 const result = server.start();

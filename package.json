@@ -23,8 +23,11 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@napi-rs/cli": "3.0.0-alpha.80",
-    "ava": "^6.0.1"
+    "@types/node": "^22.15.21",
+    "ava": "^6.0.1",
+    "concurrently": "^9.1.2"
   },
   "ava": {
     "timeout": "3m"
@@ -40,7 +43,8 @@
     "test": "ava",
     "universal": "napi universal",
     "version": "napi version",
-    "lint": "cargo fmt --check"
+    "lint": "concurrently \"cargo fmt --check\" \"biome check ./\"",
+    "lint:fix": "concurrently \"cargo fmt\" \"biome check --write ./\""
   },
   "packageManager": "pnpm@10.11.0"
 }
