@@ -45,11 +45,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: ESLint
+      - name: Code lint
         run: pnpm lint
-
-      - name: Cargo fmt
-        run: cargo fmt -- --check
 
       - name: Clippy
         run: cargo clippy

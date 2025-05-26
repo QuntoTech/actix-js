@@ -1,11 +1,28 @@
 use crate::response::{InnerResp, JsResponse};
 use actix_web::HttpRequest;
 use bytes::Bytes;
-#[allow(unused_imports)]
 use napi::bindgen_prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use tokio::sync::oneshot;
+use uuid::Uuid;
+
+#[napi(object)]
+#[derive(Debug, Clone, Serialize)]
+pub struct FileInfo {
+  pub r#type: String,
+  #[napi(js_name = "originalName")]
+  #[serde(rename = "originalName")]
+  pub original_name: String,
+  pub filename: String,
+  pub path: String,
+  #[napi(js_name = "contentType")]
+  #[serde(rename = "contentType")]
+  pub content_type: Option<String>,
+  pub size: u32,
+}
 
 #[napi]
 #[derive(Serialize)]
@@ -140,6 +157,221 @@ impl RequestWrapper {
         }
       }
       None => None,
+    }
+  }
+
+  #[napi]
+  /// 获取表单数据参数，支持 application/x-www-form-urlencoded 和 multipart/form-data 格式
+  /// 对于文件字段，直接返回文件信息对象
+  pub fn get_form_data(&self) -> serde_json::Value {
+    // 检查 Content-Type
+    let content_type = self
+      .get_header("content-type".to_string())
+      .unwrap_or_default()
+      .to_lowercase();
+
+    match &self.body {
+      Some(bytes) => {
+        if content_type.contains("application/x-www-form-urlencoded") {
+          // 处理 URL 编码的表单数据
+          if let Ok(body_str) = std::str::from_utf8(bytes) {
+            let form_data: HashMap<String, String> =
+              serde_qs::from_str(body_str).unwrap_or_default();
+            // 转换为 JSON Value
+            serde_json::to_value(form_data)
+              .unwrap_or(serde_json::Value::Object(serde_json::Map::new()))
+          } else {
+            serde_json::Value::Object(serde_json::Map::new())
+          }
+        } else if content_type.contains("multipart/form-data") {
+          // 处理 multipart 表单数据，包括文件字段
+          serde_json::to_value(self.parse_multipart_with_files(bytes, &content_type))
+            .unwrap_or(serde_json::Value::Object(serde_json::Map::new()))
+        } else {
+          serde_json::Value::Object(serde_json::Map::new())
+        }
+      }
+      None => serde_json::Value::Object(serde_json::Map::new()),
+    }
+  }
+
+  /// 解析 multipart 数据，包括文本字段和文件字段
+  fn parse_multipart_with_files(
+    &self,
+    bytes: &Bytes,
+    content_type: &str,
+  ) -> HashMap<String, serde_json::Value> {
+    // 提取 boundary（保持原始大小写）
+    let boundary = if let Some(boundary_start) = content_type.find("boundary=") {
+      let boundary_str = &content_type[boundary_start + 9..];
+      // 移除可能的引号和分号后的内容
+      boundary_str
+        .split(';')
+        .next()
+        .unwrap_or("")
+        .trim_matches('"')
+        .trim()
+    } else {
+      return HashMap::new();
+    };
+
+    if boundary.is_empty() {
+      return HashMap::new();
+    }
+
+    let mut form_data: HashMap<String, serde_json::Value> = HashMap::new();
+    let body_str = String::from_utf8_lossy(bytes);
+
+    // 查找请求体中实际的 boundary（从第一行提取）
+    let actual_boundary = if body_str.starts_with("--") {
+      if let Some(first_line_end) = body_str.find("\r\n").or_else(|| body_str.find("\n")) {
+        &body_str[2..first_line_end] // 去掉开头的 "--"
+      } else {
+        boundary
+      }
+    } else {
+      boundary
+    };
+
+    let boundary_delimiter = format!("--{}", actual_boundary);
+
+    // 分割各个部分
+    let parts: Vec<&str> = body_str.split(&boundary_delimiter).collect();
+
+    for part in parts.iter().skip(1) {
+      if part.trim().is_empty() || part.starts_with("--") {
+        continue;
+      }
+
+      // 尝试不同的换行符格式
+      let header_end = part.find("\r\n\r\n").or_else(|| part.find("\n\n"));
+
+      if let Some(header_end) = header_end {
+        let headers = &part[..header_end];
+        let content_start = if part[header_end..].starts_with("\r\n\r\n") {
+          header_end + 4
+        } else {
+          header_end + 2
+        };
+        let content = &part[content_start..]
+          .trim_end_matches("\r\n")
+          .trim_end_matches("\n");
+
+        // 解析 Content-Disposition 头
+        if let Some(name) = self.extract_form_field_name(headers) {
+          if headers.contains("filename=") {
+            // 处理文件字段，保存到本地并返回文件信息
+            if let Some(file_info) = self.save_uploaded_file(headers, content) {
+              if let Ok(file_value) = serde_json::to_value(&file_info) {
+                form_data.insert(name, file_value);
+              }
+            }
+          } else {
+            // 处理文本字段
+            form_data.insert(name, serde_json::Value::String(content.to_string()));
+          }
+        }
+      }
+    }
+    form_data
+  }
+
+  /// 从 Content-Disposition 头中提取字段名
+  fn extract_form_field_name(&self, headers: &str) -> Option<String> {
+    for line in headers.lines() {
+      if line.to_lowercase().starts_with("content-disposition:") {
+        if let Some(name_start) = line.find("name=\"") {
+          let name_part = &line[name_start + 6..];
+          if let Some(name_end) = name_part.find('"') {
+            return Some(name_part[..name_end].to_string());
+          }
+        }
+      }
+    }
+    None
+  }
+
+  /// 从 Content-Disposition 头中提取文件名
+  fn extract_filename(&self, headers: &str) -> Option<String> {
+    for line in headers.lines() {
+      if line.to_lowercase().starts_with("content-disposition:") {
+        if let Some(filename_start) = line.find("filename=\"") {
+          let filename_part = &line[filename_start + 10..];
+          if let Some(filename_end) = filename_part.find('"') {
+            return Some(filename_part[..filename_end].to_string());
+          }
+        }
+      }
+    }
+    None
+  }
+
+  /// 从头部中提取 Content-Type
+  fn extract_content_type(&self, headers: &str) -> Option<String> {
+    for line in headers.lines() {
+      if line.to_lowercase().starts_with("content-type:") {
+        return Some(line[13..].trim().to_string());
+      }
+    }
+    None
+  }
+
+  /// 保存上传的文件到本地并返回文件信息
+  fn save_uploaded_file(&self, headers: &str, content: &str) -> Option<FileInfo> {
+    let original_filename = self.extract_filename(headers)?;
+    let content_type = self.extract_content_type(headers);
+    let file_size = content.len();
+
+    // 确保 static 目录存在
+    let static_dir = Path::new("static");
+    if !static_dir.exists() {
+      if let Err(e) = fs::create_dir_all(static_dir) {
+        eprintln!("创建 static 目录失败: {}", e);
+        return None;
+      }
+    }
+
+    // 生成唯一文件名，保留原始扩展名
+    let file_extension = Path::new(&original_filename)
+      .extension()
+      .and_then(|ext| ext.to_str())
+      .unwrap_or("");
+
+    let unique_filename = if file_extension.is_empty() {
+      format!("{}", Uuid::new_v4())
+    } else {
+      format!("{}.{}", Uuid::new_v4(), file_extension)
+    };
+
+    let file_path = static_dir.join(&unique_filename);
+    let relative_path = format!("static/{}", unique_filename);
+
+    // 保存文件
+    if let Err(e) = fs::write(&file_path, content.as_bytes()) {
+      eprintln!("保存文件失败: {}", e);
+      return None;
+    }
+
+    // 返回文件信息对象
+    let file_info = FileInfo {
+      r#type: "file".to_string(),
+      original_name: original_filename,
+      filename: unique_filename,
+      path: relative_path,
+      content_type,
+      size: file_size as u32,
+    };
+
+    Some(file_info)
+  }
+
+  #[napi]
+  /// 获取表单数据中指定键的值
+  pub fn get_form_value(&self, key: String) -> Option<serde_json::Value> {
+    if let serde_json::Value::Object(map) = self.get_form_data() {
+      map.get(&key).cloned()
+    } else {
+      None
     }
   }
 

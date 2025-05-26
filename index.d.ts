@@ -13,6 +13,13 @@ export declare class RequestWrapper {
   getBodyString(): string;
   /** 尝试将请求体解析为JSON对象 */
   getBodyJson(): { [key: string]: any };
+  /**
+   * 获取表单数据参数，支持 application/x-www-form-urlencoded 和 multipart/form-data 格式
+   * 对于文件字段，直接返回文件信息对象
+   */
+  getFormData(): any;
+  /** 获取表单数据中指定键的值 */
+  getFormValue(key: string): any | null;
   /** 获取指定的请求头 */
   getHeader(name: string): string | null;
   /** 获取所有请求头 */
@@ -48,6 +55,15 @@ export declare function cleanupRouter(): void;
 
 /** 注册DELETE路由 */
 export declare function del(route: string, callback: (err: Error | null, arg: RequestWrapper) => any): void;
+
+export interface FileInfo {
+  type: string;
+  originalName: string;
+  filename: string;
+  path: string;
+  contentType?: string;
+  size: number;
+}
 
 export declare function forceCleanup(): void;
 

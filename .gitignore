@@ -196,3 +196,5 @@ $RECYCLE.BIN/
 # Native binaries (only ignore pre-built ones, not distributed ones)
 # Comment out the next line if you want to include .node files
 *.node
+
+static/
