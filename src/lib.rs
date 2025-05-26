@@ -4,7 +4,6 @@
 extern crate napi_derive;
 
 use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer};
-use mimalloc::MiMalloc;
 use napi::Result;
 use parking_lot::Mutex;
 use std::net::TcpListener;
@@ -18,8 +17,9 @@ pub use router::*;
 mod request;
 pub use request::*;
 
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+// 使用系统默认分配器
+// #[global_allocator]
+// static GLOBAL: MiMalloc = MiMalloc;
 
 // 服务器句柄类型
 type ServerHandle = Option<actix_web::dev::ServerHandle>;
