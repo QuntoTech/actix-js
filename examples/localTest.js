@@ -36,6 +36,10 @@ get('/api/test/:id', (err, req) => {
     pathParams: req.getPathParams(),
     id: req.getPathParam('id')
   });
+
+  req.sendObject({
+    id: req.getPathParam('id'),
+  })
 });
 
 const result = server.start();

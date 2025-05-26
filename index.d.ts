@@ -21,6 +21,20 @@ getHeaders(): {[key: string]: string}
 getPathParams(): {[key: string]: string}
 /** 获取指定名称的路径参数值 */
 getPathParam(name: string): string | null
+/** 发送文本响应 */
+sendText(text: string): void
+/** 发送JSON响应 */
+sendJson(json: string): void
+/** 发送对象作为JSON响应 */
+sendObject(obj: any): void
+/** 发送空响应 */
+sendEmpty(): void
+/** 发送服务器错误响应 */
+sendError(message?: string | undefined | null): void
+/** 设置响应状态码 */
+setStatusCode(status: number): boolean
+/** 添加响应头 */
+addHeader(key: string, value: string): void
 }
 
 export declare class Server {

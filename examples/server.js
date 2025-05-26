@@ -211,7 +211,7 @@ process.on('uncaughtException', (error) => {
 
 console.log('\n⏳ 测试进行中，请等待...');
 
-// 注册路由的回调函数 - 使用新的RequestWrapper
+// 注册路由的回调函数 - 使用新的RequestWrapper响应功能
 function createRouteHandler(routeName) {
   return (err, requestWrapper) => {
     if (err) {
@@ -219,20 +219,109 @@ function createRouteHandler(routeName) {
       return;
     }
     
-    // 使用RequestWrapper的方法获取请求数据
-    const method = requestWrapper.getMethod();
-    const path = requestWrapper.getPath();
-    const queryString = requestWrapper.getQueryString();
-    const queryParams = requestWrapper.getQueryParams();
-    const body = requestWrapper.getBodyString();
-    const headers = requestWrapper.getHeaders();
+    if (!requestWrapper) {
+      console.log(`   ❌ ${routeName}回调接收到null参数`);
+      return;
+    }
     
-    console.log(`   ✅ ${routeName}回调被调用:`);
-    console.log(`      方法: ${method}`);
-    console.log(`      路径: ${path}`);
-    console.log(`      查询字符串: "${queryString}"`);
-    console.log(`      查询参数:`, queryParams);
-    console.log(`      请求体: "${body}"`);
-    console.log(`      请求头数量: ${Object.keys(headers).length}`);
+    try {
+      // 使用RequestWrapper的方法获取请求数据
+      const method = requestWrapper.getMethod();
+      const path = requestWrapper.getPath();
+      const queryString = requestWrapper.getQueryString();
+      const queryParams = requestWrapper.getQueryParams();
+      const body = requestWrapper.getBodyString();
+      const headers = requestWrapper.getHeaders();
+      const pathParams = requestWrapper.getPathParams();
+      
+      console.log(`   ✅ ${routeName}回调被调用:`);
+      console.log(`      方法: ${method}`);
+      console.log(`      路径: ${path}`);
+      console.log(`      查询字符串: "${queryString}"`);
+      console.log(`      查询参数:`, queryParams);
+      console.log(`      路径参数:`, pathParams);
+      console.log(`      请求体: "${body}"`);
+      console.log(`      请求头数量: ${Object.keys(headers).length}`);
+      
+      // 根据不同路由返回不同响应
+      if (path === '/') {
+        // 首页路由
+        requestWrapper.setStatusCode(200);
+        requestWrapper.addHeader('X-Custom-Header', 'Hello from Actix-JS');
+        requestWrapper.sendJson(JSON.stringify({
+          message: "欢迎使用 Actix-JS！",
+          path: path,
+          method: method,
+          timestamp: new Date().toISOString()
+        }));
+      } else if (path === '/health') {
+        // 健康检查路由
+        requestWrapper.setStatusCode(200);
+        requestWrapper.sendObject({
+          status: "healthy",
+          uptime: process.uptime(),
+          timestamp: new Date().toISOString()
+        });
+      } else if (path === '/api/test') {
+        // API测试路由
+        requestWrapper.setStatusCode(200);
+        requestWrapper.addHeader('Content-Type', 'application/json');
+        requestWrapper.sendObject({
+          success: true,
+          data: {
+            queryParams: queryParams,
+            headers: Object.keys(headers).length,
+            method: method
+          }
+        });
+      } else if (path === '/api/users' && method === 'POST') {
+        // 创建用户路由
+        try {
+          const userData = body ? JSON.parse(body) : {};
+          requestWrapper.setStatusCode(201);
+          requestWrapper.sendObject({
+            success: true,
+            message: "用户创建成功",
+            user: {
+              id: Math.floor(Math.random() * 1000),
+              ...userData,
+              createdAt: new Date().toISOString()
+            }
+          });
+        } catch (e) {
+          requestWrapper.setStatusCode(400);
+          requestWrapper.sendObject({
+            success: false,
+            error: "无效的JSON数据"
+          });
+        }
+      } else if (path.startsWith('/api/users/') && (method === 'PUT' || method === 'DELETE')) {
+        // 更新或删除用户路由
+        const userId = pathParams.id;
+        if (method === 'PUT') {
+          requestWrapper.setStatusCode(200);
+          requestWrapper.sendObject({
+            success: true,
+            message: `用户 ${userId} 更新成功`,
+            userId: userId
+          });
+        } else if (method === 'DELETE') {
+          requestWrapper.setStatusCode(204);
+          requestWrapper.sendEmpty();
+        }
+      } else {
+        // 其他路由
+        requestWrapper.setStatusCode(200);
+        requestWrapper.sendText(`${routeName} 处理完成 - ${path}`);
+      }
+    } catch (error) {
+      console.log(`   ❌ ${routeName}回调处理出错:`, error);
+      try {
+        requestWrapper.setStatusCode(500);
+        requestWrapper.sendError(`服务器内部错误: ${error.message}`);
+      } catch (e) {
+        console.log(`   ❌ 发送错误响应失败:`, e);
+      }
+    }
   };
 } 

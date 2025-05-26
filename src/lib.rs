@@ -17,6 +17,10 @@ pub use router::*;
 mod request;
 pub use request::*;
 
+// 导入response模块
+mod response;
+pub use response::*;
+
 // 使用系统默认分配器
 // #[global_allocator]
 // static GLOBAL: MiMalloc = MiMalloc;
@@ -24,17 +28,17 @@ pub use request::*;
 // 服务器句柄类型
 type ServerHandle = Option<actix_web::dev::ServerHandle>;
 
+#[napi(object)]
+pub struct ServerOptions {
+  pub host: String,
+  pub port: u16,
+}
+
 #[napi]
 pub struct Server {
   options: ServerOptions,
   // 使用Arc<Mutex>来存储服务器句柄，这样可以在多线程间安全共享
   handle: Arc<Mutex<ServerHandle>>,
-}
-
-#[napi(object)]
-pub struct ServerOptions {
-  pub host: String,
-  pub port: u16,
 }
 
 #[napi]
@@ -125,16 +129,35 @@ async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpRespons
       })
       .unwrap_or_default();
 
-    // 创建带路径参数的RequestWrapper
-    let request_wrapper = RequestWrapper::new_with_params(req, Some(body), path_params);
+    // 创建oneshot channel用于接收响应
+    let (tx, rx) = tokio::sync::oneshot::channel::<JsResponse>();
+
+    // 创建带路径参数和响应发送器的RequestWrapper
+    let mut request_wrapper = RequestWrapper::new_with_params(req, Some(body), path_params);
+    request_wrapper.set_response_sender(tx);
 
     // 执行JavaScript回调，传递RequestWrapper
     router::node_functions::execute_callback_with_request(callback, request_wrapper);
 
-    // 返回成功响应（简单示例）
-    HttpResponse::Ok()
-      .content_type("application/json")
-      .body(r#"{"message": "Route handled by JavaScript callback"}"#)
+    // 等待JavaScript回调发送响应，设置5秒超时
+    match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+      Ok(Ok(js_response)) => {
+        // 将JsResponse转换为HttpResponse
+        js_response.into_http_response()
+      }
+      Ok(Err(_)) => {
+        // 发送器被丢弃，说明JavaScript代码没有发送响应
+        HttpResponse::InternalServerError()
+          .content_type("application/json")
+          .body(r#"{"error": "JavaScript callback did not send response"}"#)
+      }
+      Err(_) => {
+        // 超时
+        HttpResponse::RequestTimeout()
+          .content_type("application/json")
+          .body(r#"{"error": "Request timeout - JavaScript callback took too long"}"#)
+      }
+    }
   } else {
     // 路由未找到
     HttpResponse::NotFound()
