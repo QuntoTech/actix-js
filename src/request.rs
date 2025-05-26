@@ -2,8 +2,8 @@ use actix_web::HttpRequest;
 use bytes::Bytes;
 #[allow(unused_imports)]
 use napi::bindgen_prelude::*;
-use std::collections::HashMap;
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[napi]
 #[derive(Serialize)]
@@ -18,16 +18,20 @@ pub struct RequestWrapper {
 
 impl RequestWrapper {
   pub fn new(request: HttpRequest, body: Option<Bytes>) -> Self {
-    Self { 
-      request, 
+    Self {
+      request,
       body,
       path_params: HashMap::new(),
     }
   }
-  
-  pub fn new_with_params(request: HttpRequest, body: Option<Bytes>, path_params: HashMap<String, String>) -> Self {
-    Self { 
-      request, 
+
+  pub fn new_with_params(
+    request: HttpRequest,
+    body: Option<Bytes>,
+    path_params: HashMap<String, String>,
+  ) -> Self {
+    Self {
+      request,
       body,
       path_params,
     }
@@ -61,7 +65,7 @@ impl RequestWrapper {
     if query_string.is_empty() {
       return HashMap::new();
     }
-    
+
     serde_qs::from_str(query_string).unwrap_or_default()
   }
 
@@ -92,7 +96,8 @@ impl RequestWrapper {
   #[napi]
   /// 获取指定的请求头
   pub fn get_header(&self, name: String) -> Option<String> {
-    self.request
+    self
+      .request
       .headers()
       .get(&name)
       .and_then(|value| value.to_str().ok())
@@ -122,4 +127,4 @@ impl RequestWrapper {
   pub fn get_path_param(&self, name: String) -> Option<String> {
     self.path_params.get(&name).cloned()
   }
-} 
+}

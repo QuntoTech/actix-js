@@ -1,7 +1,7 @@
-use std::{cell::UnsafeCell, mem::MaybeUninit};
 use actix_web::http::Method;
 use halfbrown::HashMap;
 use matchit::{Params, Router};
+use std::{cell::UnsafeCell, mem::MaybeUninit};
 
 use crate::router::node_functions::CallBackFunction;
 
@@ -75,4 +75,4 @@ pub fn get_params(route: &str, method: Method) -> Option<HashMap<String, String>
     Ok(res) => Some(params_to_map(&res.params)),
     Err(_) => None,
   }
-} 
+}

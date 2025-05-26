@@ -1,18 +1,20 @@
 use actix_web::http::Method;
 use napi::bindgen_prelude::*;
-use napi::threadsafe_function::{ThreadsafeFunction, ErrorStrategy, ThreadsafeFunctionCallMode, ThreadSafeCallContext};
+use napi::threadsafe_function::{
+  ErrorStrategy, ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
+};
 use serde::Serialize;
 
-use crate::router::store::{cleanup_route, add_new_route};
 use crate::request::RequestWrapper;
+use crate::router::store::{add_new_route, cleanup_route};
 
 // 定义请求数据结构
 #[derive(Serialize)]
 pub struct RequestData {
-    pub method: String,
-    pub path: String,
-    pub query: String,
-    pub params: serde_json::Map<String, serde_json::Value>,
+  pub method: String,
+  pub path: String,
+  pub query: String,
+  pub params: serde_json::Map<String, serde_json::Value>,
 }
 
 // 使用RequestWrapper作为ThreadsafeFunction的类型
@@ -105,20 +107,19 @@ pub fn del(route: String, callback: JsFunction) -> Result<()> {
 }
 
 /// 执行JavaScript回调函数（带RequestWrapper）
-pub fn execute_callback_with_request(
-  callback: &CallBackFunction, 
-  request_wrapper: RequestWrapper
-) {
+pub fn execute_callback_with_request(callback: &CallBackFunction, request_wrapper: RequestWrapper) {
   // 添加调试信息
-  println!("尝试调用JavaScript回调，路径: {}, 方法: {}", 
-           request_wrapper.get_path(), 
-           request_wrapper.get_method());
-  
+  println!(
+    "尝试调用JavaScript回调，路径: {}, 方法: {}",
+    request_wrapper.get_path(),
+    request_wrapper.get_method()
+  );
+
   // 使用正确的API调用ThreadsafeFunction
   match callback.call(Ok(request_wrapper), ThreadsafeFunctionCallMode::NonBlocking) {
     napi::Status::Ok => {
       println!("JavaScript回调调用成功");
-    },
+    }
     status => {
       println!("JavaScript回调调用失败，状态: {:?}", status);
     }
@@ -126,8 +127,13 @@ pub fn execute_callback_with_request(
 }
 
 /// 执行JavaScript回调函数（兼容旧接口）
-pub fn execute_callback(_callback: &CallBackFunction, _method: String, _path: String, _query: String) {
+pub fn execute_callback(
+  _callback: &CallBackFunction,
+  _method: String,
+  _path: String,
+  _query: String,
+) {
   // 创建一个临时的RequestWrapper（这里只是为了兼容，实际使用中应该传递真实的RequestWrapper）
   println!("警告：使用了旧的execute_callback接口，建议使用execute_callback_with_request");
   // 这里我们不能创建假的RequestWrapper，所以暂时保持空实现
-} 
+}

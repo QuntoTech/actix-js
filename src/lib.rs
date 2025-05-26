@@ -3,12 +3,12 @@
 #[macro_use]
 extern crate napi_derive;
 
+use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer};
 use mimalloc::MiMalloc;
 use napi::Result;
-use actix_web::{web, App, HttpServer, HttpResponse, middleware, HttpRequest};
+use parking_lot::Mutex;
 use std::net::TcpListener;
 use std::sync::Arc;
-use parking_lot::Mutex;
 
 // 导入router模块
 mod router;
@@ -41,7 +41,7 @@ pub struct ServerOptions {
 impl Server {
   #[napi(constructor)]
   pub fn new(options: ServerOptions) -> Self {
-    Server { 
+    Server {
       options,
       handle: Arc::new(Mutex::new(None)),
     }
@@ -54,7 +54,10 @@ impl Server {
 
     // 检查端口是否可用
     if let Err(e) = TcpListener::bind(format!("{}:{}", &host, port)) {
-      return Err(napi::Error::from_reason(format!("无法绑定到 {}:{}：{}", &host, port, e)));
+      return Err(napi::Error::from_reason(format!(
+        "无法绑定到 {}:{}：{}",
+        &host, port, e
+      )));
     }
 
     // 初始化路由读取器
@@ -62,7 +65,7 @@ impl Server {
 
     let handle_clone = self.handle.clone();
     let host_clone = host.clone();
-    
+
     // 使用tokio运行时启动服务器
     napi::tokio::spawn(async move {
       let server = HttpServer::new(|| {
@@ -74,15 +77,15 @@ impl Server {
       .bind(format!("{}:{}", host_clone, port))
       .unwrap()
       .run();
-      
+
       // 存储服务器句柄
       {
         let mut handle_lock = handle_clone.lock();
         *handle_lock = Some(server.handle());
       }
-      
+
       println!("✅ 服务器已启动：http://{}:{}", host_clone, port);
-      
+
       // 运行服务器
       if let Err(e) = server.await {
         eprintln!("❌ 服务器错误: {}", e);
@@ -91,7 +94,7 @@ impl Server {
 
     Ok(format!("服务器已启动：http://{}:{}", host, port))
   }
-  
+
   #[napi]
   pub fn stop(&self) -> Result<String> {
     let mut handle_lock = self.handle.lock();
@@ -110,20 +113,24 @@ impl Server {
 async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpResponse {
   let path = req.path();
   let method = req.method().clone();
-  
+
   // 尝试从动态路由中查找回调函数
   if let Some(callback) = router::read_only::get_route(path, method.clone()) {
     // 获取路径参数并转换为std::collections::HashMap
     let path_params = router::read_only::get_params(path, method.clone())
-      .map(|params| params.into_iter().collect::<std::collections::HashMap<String, String>>())
+      .map(|params| {
+        params
+          .into_iter()
+          .collect::<std::collections::HashMap<String, String>>()
+      })
       .unwrap_or_default();
-    
+
     // 创建带路径参数的RequestWrapper
     let request_wrapper = RequestWrapper::new_with_params(req, Some(body.into()), path_params);
-    
+
     // 执行JavaScript回调，传递RequestWrapper
     router::node_functions::execute_callback_with_request(&callback, request_wrapper);
-    
+
     // 返回成功响应（简单示例）
     HttpResponse::Ok()
       .content_type("application/json")
@@ -132,7 +139,10 @@ async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpRespons
     // 路由未找到
     HttpResponse::NotFound()
       .content_type("application/json")
-      .body(format!(r#"{{"error": "Route not found", "path": "{}"}}"#, path))
+      .body(format!(
+        r#"{{"error": "Route not found", "path": "{}"}}"#,
+        path
+      ))
   }
 }
 

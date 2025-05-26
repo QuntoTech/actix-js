@@ -1,10 +1,10 @@
+use lazy_static::lazy_static;
 use matchit::Router;
 use napi::bindgen_prelude::*;
-use lazy_static::lazy_static;
 use parking_lot::{Mutex, RwLock};
 
-use crate::router::node_functions::{CallBackFunction, Methods};
 use super::read_only::{write_reader, ReadRoutes};
+use crate::router::node_functions::{CallBackFunction, Methods};
 
 type ReaderLookup = Router<CallBackFunction>;
 type ThreadSafeLookup = RwLock<Router<CallBackFunction>>;
@@ -88,4 +88,4 @@ pub fn add_new_route(route: &str, method: Methods, function: CallBackFunction) -
   writing
     .insert(route, function)
     .map_err(|_| Error::new(Status::GenericFailure, "Error inserting route".to_string()))
-} 
+}
