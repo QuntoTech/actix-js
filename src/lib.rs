@@ -1,5 +1,26 @@
 #![deny(clippy::all)]
 
+// 🚀 内存分配器优化配置
+// 使用 mimalloc - 微软开发的高性能内存分配器
+#[cfg(feature = "mimalloc_allocator")]
+use mimalloc::MiMalloc;
+
+// 启用mimalloc作为全局分配器 (高性能，现代设计)
+#[cfg(feature = "mimalloc_allocator")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
+// 编译时显示使用的内存分配器信息
+#[cfg(feature = "mimalloc_allocator")]
+const _: () = {
+  const _INFO: &str = "🧠 Using mimalloc allocator for maximum performance";
+};
+
+#[cfg(not(feature = "mimalloc_allocator"))]
+const _: () = {
+  const _INFO: &str = "🧠 Using system default allocator";
+};
+
 #[macro_use]
 extern crate napi_derive;
 
@@ -20,10 +41,6 @@ pub use request::*;
 // 导入response模块
 mod response;
 pub use response::*;
-
-// 使用系统默认分配器
-// #[global_allocator]
-// static GLOBAL: MiMalloc = MiMalloc;
 
 // 服务器句柄类型
 type ServerHandle = Option<actix_web::dev::ServerHandle>;

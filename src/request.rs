@@ -1029,18 +1029,30 @@ impl DetachedRequestWrapper {
 
   #[napi]
   /// 异步发送文本响应 - 返回Promise，支持await
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行响应发送操作，不涉及内存安全问题。
   pub async unsafe fn send_text_async(&mut self, text: String) -> Result<()> {
     self.send_response(InnerResp::Text(text))
   }
 
   #[napi]
   /// 异步发送JSON响应 - 返回Promise，支持await
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行响应发送操作，不涉及内存安全问题。
   pub async unsafe fn send_json_async(&mut self, json: String) -> Result<()> {
     self.send_response(InnerResp::Json(json))
   }
 
   #[napi]
   /// 异步发送对象作为JSON响应 - 返回Promise，支持await
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行JSON序列化和响应发送操作，不涉及内存安全问题。
   pub async unsafe fn send_object_async(&mut self, obj: serde_json::Value) -> Result<()> {
     match serde_json::to_string(&obj) {
       Ok(json_string) => self.send_response(InnerResp::Json(json_string)),
@@ -1050,12 +1062,20 @@ impl DetachedRequestWrapper {
 
   #[napi]
   /// 异步发送空响应 - 返回Promise，支持await
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行响应发送操作，不涉及内存安全问题。
   pub async unsafe fn send_empty_async(&mut self) -> Result<()> {
     self.send_response(InnerResp::EmptyString)
   }
 
   #[napi]
   /// 异步发送服务器错误响应 - 返回Promise，支持await
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行响应发送操作，不涉及内存安全问题。
   pub async unsafe fn send_error_async(&mut self, message: Option<String>) -> Result<()> {
     match message {
       Some(msg) => self.send_response(InnerResp::ServerErrorWithMessage(msg)),
@@ -1065,6 +1085,10 @@ impl DetachedRequestWrapper {
 
   #[napi]
   /// 异步设置响应状态码 - 返回Promise，支持await
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行状态码设置操作，不涉及内存安全问题。
   pub async unsafe fn set_status_code_async(&mut self, status: u16) -> Result<bool> {
     if self.sent {
       return Ok(false);
@@ -1080,6 +1104,10 @@ impl DetachedRequestWrapper {
 
   #[napi]
   /// 异步添加响应头 - 返回Promise，支持await
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行响应头添加操作，不涉及内存安全问题。
   pub async unsafe fn add_header_async(&mut self, key: String, value: String) -> Result<()> {
     if !self.sent {
       self.response_headers.push((key, value));
@@ -1090,6 +1118,10 @@ impl DetachedRequestWrapper {
   #[napi]
   /// 异步获取表单数据参数，支持 application/x-www-form-urlencoded 和 multipart/form-data 格式
   /// 对于文件字段，直接返回文件信息对象 - 零拷贝优化：使用预计算缓存，无运行时开销
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行缓存数据读取操作，不涉及内存安全问题。
   pub async unsafe fn get_form_data_async(&self) -> Result<serde_json::Value> {
     Ok(
       self
@@ -1101,6 +1133,10 @@ impl DetachedRequestWrapper {
 
   #[napi]
   /// 异步获取表单数据中指定键的值 - 零拷贝优化：使用预计算缓存，无运行时开销
+  ///
+  /// # Safety
+  /// 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+  /// 函数内部只进行缓存数据读取操作，不涉及内存安全问题。
   pub async unsafe fn get_form_value_async(
     &self,
     key: String,

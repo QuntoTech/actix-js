@@ -229,25 +229,245 @@ pub struct RequestWrapper {
 
 ### 阶段四：编译优化 (预期提升: 1.2-1.5x)
 
-#### 4.1 Cargo.toml 优化
+#### 4.1 基础编译优化 (推荐配置)
 ```toml
 [profile.release]
+# 最高优化级别
 opt-level = 3
+# 启用链接时优化，显著提升性能
 lto = "fat"
+# 单个代码生成单元，更好的优化
 codegen-units = 1
+# 直接终止而不是展开panic，减少二进制大小
 panic = "abort"
+# 移除调试符号，减少二进制大小
 strip = true
-
-[dependencies]
-# 使用更快的分配器
-mimalloc = { version = "0.1", default-features = false }
+# 溢出检查在release模式下关闭（默认行为）
+overflow-checks = false
 ```
 
-#### 4.2 CPU 特定优化
+#### 4.2 内存分配器优化 (条件性配置)
+
+##### 4.2.1 推荐方案：jemalloc (跨平台兼容)
+```toml
+[dependencies]
+# jemalloc: 更好的跨平台兼容性，无C++依赖
+jemallocator = { version = "0.5", optional = true }
+
+[features]
+default = []
+# 可选的内存分配器优化
+jemalloc = ["jemallocator"]
+mimalloc = ["dep:mimalloc"]
+
+# 条件性依赖：只在需要时启用
+[dependencies.mimalloc]
+version = "0.1"
+default-features = false
+optional = true
+```
+
+##### 4.2.2 Rust代码中的条件编译
+```rust
+// src/lib.rs 或 main.rs 顶部
+#[cfg(feature = "jemalloc")]
+use jemallocator::Jemalloc;
+
+#[cfg(feature = "mimalloc")]
+use mimalloc::MiMalloc;
+
+// 根据feature选择分配器
+#[cfg(feature = "jemalloc")]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+```
+
+#### 4.3 CPU优化 (环境感知配置)
+
+##### 4.3.1 本地开发环境
+```toml
+# .cargo/config.toml (本地开发)
+[build]
+rustflags = ["-C", "target-cpu=native"]
+```
+
+##### 4.3.2 CI/CD 安全配置
 ```toml
 [profile.release]
-target-cpu = "native"
+# 通用x86_64优化，避免native导致的兼容性问题
+# target-cpu = "x86-64-v2"  # 注释掉，通过环境变量控制
 ```
+
+#### 4.4 多环境编译脚本
+
+##### 4.4.1 本地开发构建
+```bash
+#!/bin/bash
+# scripts/build-dev.sh
+echo "🚀 本地开发构建（启用原生CPU优化）"
+export RUSTFLAGS="-C target-cpu=native"
+cargo build --release --features jemalloc
+```
+
+##### 4.4.2 CI/CD 构建
+```bash
+#!/bin/bash
+# scripts/build-ci.sh
+echo "📦 CI/CD构建（兼容性优先）"
+
+# 检测系统环境
+if command -v gcc >/dev/null 2>&1 && command -v g++ >/dev/null 2>&1; then
+    echo "✅ 检测到C++编译器，使用mimalloc"
+    FEATURES="mimalloc"
+else
+    echo "⚠️  未检测到C++编译器，使用jemalloc"
+    FEATURES="jemalloc"
+fi
+
+# 设置通用优化标志
+export RUSTFLAGS="-C target-cpu=x86-64-v2"
+
+# 构建
+cargo build --release --features $FEATURES
+```
+
+##### 4.4.3 Docker多阶段构建
+```dockerfile
+# Dockerfile.optimized
+FROM rust:1.75-bullseye as builder
+
+# 安装C++编译器（用于mimalloc）
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    clang \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY . .
+
+# 条件性构建：尝试mimalloc，失败则回退到jemalloc
+RUN cargo build --release --features mimalloc || \
+    cargo build --release --features jemalloc
+
+# 运行时镜像（最小化）
+FROM debian:bullseye-slim
+COPY --from=builder /app/target/release/your-binary /usr/local/bin/
+CMD ["your-binary"]
+```
+
+#### 4.5 性能监控和验证
+
+##### 4.5.1 内存分配器性能测试
+```rust
+#[cfg(test)]
+mod bench {
+    use criterion::{criterion_group, criterion_main, Criterion};
+    
+    fn memory_allocation_benchmark(c: &mut Criterion) {
+        c.bench_function("string_allocation", |b| {
+            b.iter(|| {
+                let mut vec = Vec::new();
+                for i in 0..1000 {
+                    vec.push(format!("test_string_{}", i));
+                }
+                vec
+            })
+        });
+    }
+    
+    criterion_group!(benches, memory_allocation_benchmark);
+    criterion_main!(benches);
+}
+```
+
+##### 4.5.2 编译优化验证脚本
+```bash
+#!/bin/bash
+# scripts/verify-optimizations.sh
+
+echo "🔍 验证编译优化效果"
+
+# 检查二进制大小
+echo "📏 二进制文件大小:"
+ls -lh target/release/
+
+# 检查符号表（应该被strip掉）
+echo "🔧 符号表检查:"
+file target/release/your-binary
+
+# 检查使用的分配器
+echo "🧠 内存分配器检查:"
+ldd target/release/your-binary | grep -E "(jemalloc|mimalloc)" || echo "使用默认分配器"
+
+# 性能基准测试
+echo "⚡ 性能测试:"
+cargo bench
+```
+
+#### 4.6 CI/CD 集成配置
+
+##### 4.6.1 GitHub Actions
+```yaml
+# .github/workflows/optimize-build.yml
+name: 优化构建测试
+
+on: [push, pull_request]
+
+jobs:
+  test-optimizations:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        allocator: [default, jemalloc, mimalloc]
+        exclude:
+          # mimalloc在某些环境下可能失败
+          - os: ubuntu-latest
+            allocator: mimalloc
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 安装Rust工具链
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+    
+    - name: 安装C++编译器 (Ubuntu)
+      if: matrix.os == 'ubuntu-latest' && matrix.allocator == 'mimalloc'
+      run: sudo apt-get update && sudo apt-get install -y build-essential
+    
+    - name: 构建（条件性特性）
+      run: |
+        if [ "${{ matrix.allocator }}" = "default" ]; then
+          cargo build --release
+        else
+          cargo build --release --features ${{ matrix.allocator }}
+        fi
+    
+    - name: 运行性能测试
+      run: cargo test --release
+```
+
+#### 4.7 预期性能提升
+
+| 优化项目 | 性能提升 | 兼容性 | 风险等级 |
+|---------|----------|--------|----------|
+| opt-level = 3 | +15% | ✅ 高 | 🟢 低 |
+| LTO = "fat" | +10% | ✅ 高 | 🟢 低 |
+| jemalloc | +8% | ✅ 高 | 🟢 低 |
+| mimalloc | +12% | ⚠️ 中 | 🟡 中 |
+| target-cpu=native | +5% | ❌ 低 | 🔴 高 |
+| strip = true | 减少50%大小 | ✅ 高 | 🟢 低 |
+
+**总计预期提升**: 1.2-1.5x (安全配置) 或 1.3-1.7x (激进配置)
 
 ### 阶段五：架构优化 (预期提升: 2-5x)
 

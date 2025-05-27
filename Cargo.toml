@@ -10,7 +10,10 @@ crate-type = ["cdylib"]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi = { version = "3.0.0-beta.2", default-features = false, features = ["napi4", "tokio_rt", "serde-json"] }
 napi-derive = "3.0.0-beta.2"
-# mimalloc = { version = "*", features = ["secure"] }
+
+# 内存分配器优化 (mimalloc - 现代高性能分配器)
+mimalloc = { version = "0.1", default-features = false, optional = true }
+
 actix-web = "4.3.1"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
@@ -28,6 +31,28 @@ uuid = { version = "1.0", features = ["v4"] }
 [build-dependencies]
 napi-build = "2.0.1"
 
+[features]
+default = ["mimalloc_allocator"]
+# 内存分配器特性
+mimalloc_allocator = ["mimalloc"]
+# 开发环境特性
+dev-optimizations = []
+
 [profile.release]
-lto = true
+# 最高优化级别
+opt-level = 3
+# 启用链接时优化，显著提升性能
+lto = "fat"
+# 单个代码生成单元，更好的优化
+codegen-units = 1
+# 直接终止而不是展开panic，减少二进制大小
+panic = "abort"
+# 移除调试符号，减少二进制大小
 strip = "symbols"
+# 溢出检查在release模式下关闭（默认行为）
+overflow-checks = false
+
+# 本地开发优化配置
+[profile.release-native]
+inherits = "release"
+# 这将通过.cargo/config.toml中的RUSTFLAGS设置

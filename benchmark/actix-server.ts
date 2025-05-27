@@ -7,6 +7,7 @@ cleanupRouter();
 const server = new Server({
   host: '127.0.0.1',
   port: 3001,
+  // keepAlive: 30,
 });
 
 // 注册路由

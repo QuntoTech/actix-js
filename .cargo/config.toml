@@ -1,3 +1,27 @@
+# 本地开发Cargo配置 - 启用本机CPU优化
+[build]
+# 本机CPU优化：使用本机支持的所有指令集
+# 这将启用AVX、AVX2、FMA等现代指令，大幅提升性能
+rustflags = [
+    "-C", "target-cpu=native",
+    # 可选：额外的优化标志
+    # "-C", "target-feature=+crt-static",  # 静态链接运行时（可选）
+]
+
+# 指定默认的编译目标
+# target = "x86_64-unknown-linux-gnu"  # 根据需要调整
+
+[target.x86_64-unknown-linux-gnu]
+# 使用更快的链接器（如果已安装）
+# 需要先安装：sudo apt install lld 或 sudo pacman -S lld
+# linker = "clang"
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[env]
+# 环境变量设置
+# mimalloc优化配置
+MI_SHOW_STATS = "1"  # 显示分配器统计信息（调试时有用）
+
 [target.aarch64-unknown-linux-musl]
 linker = "aarch64-linux-musl-gcc"
 rustflags = ["-C", "target-feature=-crt-static"]
