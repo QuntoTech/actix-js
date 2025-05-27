@@ -1,81 +1,58 @@
-import * as http from 'http';
-import * as url from 'url';
-
-// 创建 HTTP 服务器
-const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
-  const parsedUrl = url.parse(req.url || '', true);
-  const path = parsedUrl.pathname;
-  const method = req.method;
-
-  // 设置 CORS 头
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // 处理 OPTIONS 请求
-  if (method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  // 路由处理
-  if (method === 'GET' && path === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Hello World');
-  } else if (method === 'GET' && path === '/json') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ message: 'Hello JSON', timestamp: Date.now() }));
-  } else if (method === 'POST' && path === '/echo') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ echo: body, timestamp: Date.now() }));
-    });
-  } else if (method === 'POST' && path === '/json') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ received: data, timestamp: Date.now() }));
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
-    });
-  } else {
-    // 404 处理
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
-  }
-});
+import fastify from 'fastify';
 
 // 启动服务器
-const PORT = 3000;
-const HOST = '127.0.0.1';
-
-server.listen(PORT, HOST, () => {
-  console.log(`Starting Native HTTP server on http://${HOST}:${PORT}`);
-});
-
-// 优雅关闭处理
-process.on('SIGINT', () => {
-  console.log('\nShutting down Native HTTP server...');
-  server.close(() => {
-    process.exit(0);
+const start = async () => {
+  // 创建 Fastify 实例
+  const server = fastify({
+    logger: false,
   });
-});
 
-process.on('SIGTERM', () => {
-  console.log('\nShutting down Native HTTP server...');
-  server.close(() => {
-    process.exit(0);
+  // 配置 CORS
+  await server.register(require('@fastify/cors'), {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
-});
+
+  // 路由处理
+  server.get('/', async (request, reply) => {
+    return 'Hello World';
+  });
+
+  server.get('/json', async (request, reply) => {
+    reply.type('application/json');
+    return { message: 'Hello JSON', timestamp: Date.now() };
+  });
+
+  server.post('/echo', async (request, reply) => {
+    reply.type('application/json');
+    return { echo: request.body, timestamp: Date.now() };
+  });
+
+  server.post('/json', async (request, reply) => {
+    reply.type('application/json');
+    return { received: request.body, timestamp: Date.now() };
+  });
+
+  // 优雅关闭处理
+  const gracefulShutdown = async () => {
+    console.log('\nShutting down Fastify server...');
+    await server.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', gracefulShutdown);
+  process.on('SIGTERM', gracefulShutdown);
+
+  try {
+    const PORT = 3000;
+    const HOST = '127.0.0.1';
+
+    await server.listen({ port: PORT, host: HOST });
+    console.log(`Starting Fastify server on http://${HOST}:${PORT}`);
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+};
+
+start();

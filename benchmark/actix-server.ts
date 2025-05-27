@@ -1,4 +1,4 @@
-import { RequestWrapper, Server, cleanupRouter, get, post } from '../index';
+import { Server, cleanupRouter, getAsync, postAsync } from '../index';
 
 // 清理之前的路由
 cleanupRouter();
@@ -10,46 +10,46 @@ const server = new Server({
 });
 
 // 注册路由
-get('/', (err: Error | null, req: RequestWrapper) => {
+getAsync('/', async (err, req) => {
   if (err) {
-    req.setStatusCode(500);
-    req.sendError('Internal Server Error');
+    await req.setStatusCodeAsync(500);
+    await req.sendErrorAsync('Internal Server Error');
     return;
   }
-  req.sendText('Hello World');
+  await req.sendTextAsync('Hello World');
 });
 
-get('/json', (err: Error | null, req: RequestWrapper) => {
+getAsync('/json', async (err, req) => {
   if (err) {
-    req.setStatusCode(500);
-    req.sendError('Internal Server Error');
+    await req.setStatusCodeAsync(500);
+    await req.sendErrorAsync('Internal Server Error');
     return;
   }
-  req.sendObject({ message: 'Hello JSON', timestamp: Date.now() });
+  await req.sendObjectAsync({ message: 'Hello JSON', timestamp: Date.now() });
 });
 
-post('/echo', (err: Error | null, req: RequestWrapper) => {
+postAsync('/echo', async (err, req) => {
   if (err) {
-    req.setStatusCode(500);
-    req.sendError('Internal Server Error');
+    await req.setStatusCodeAsync(500);
+    await req.sendErrorAsync('Internal Server Error');
     return;
   }
   const body = req.getBodyString();
-  req.sendObject({ echo: body, timestamp: Date.now() });
+  await req.sendObjectAsync({ echo: body, timestamp: Date.now() });
 });
 
-post('/json', (err: Error | null, req: RequestWrapper) => {
+postAsync('/json', async (err, req) => {
   if (err) {
-    req.setStatusCode(500);
-    req.sendError('Internal Server Error');
+    await req.setStatusCodeAsync(500);
+    await req.sendErrorAsync('Internal Server Error');
     return;
   }
   try {
     const data = req.getBodyJson();
-    req.sendObject({ received: data, timestamp: Date.now() });
+    await req.sendObjectAsync({ received: data, timestamp: Date.now() });
   } catch (e) {
-    req.setStatusCode(400);
-    req.sendError('Invalid JSON');
+    await req.setStatusCodeAsync(400);
+    await req.sendErrorAsync('Invalid JSON');
   }
 });
 
