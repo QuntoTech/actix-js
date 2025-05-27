@@ -7,8 +7,46 @@ use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::sync::LazyLock;
 use tokio::sync::oneshot;
 use uuid::Uuid;
+
+// 字符串常量池优化 - HTTP 方法池
+static HTTP_METHODS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+  let mut map = HashMap::new();
+  map.insert("GET", "GET");
+  map.insert("POST", "POST");
+  map.insert("PUT", "PUT");
+  map.insert("PATCH", "PATCH");
+  map.insert("DELETE", "DELETE");
+  map.insert("HEAD", "HEAD");
+  map.insert("OPTIONS", "OPTIONS");
+  map.insert("CONNECT", "CONNECT");
+  map.insert("TRACE", "TRACE");
+  map
+});
+
+// 字符串常量池优化 - 常见请求头池
+static COMMON_HEADERS: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+  let mut map = HashMap::new();
+  map.insert("content-type", "content-type");
+  map.insert("content-length", "content-length");
+  map.insert("user-agent", "user-agent");
+  map.insert("accept", "accept");
+  map.insert("authorization", "authorization");
+  map.insert("cookie", "cookie");
+  map.insert("host", "host");
+  map.insert("referer", "referer");
+  map.insert("x-forwarded-for", "x-forwarded-for");
+  map.insert("x-real-ip", "x-real-ip");
+  map.insert("x-forwarded-proto", "x-forwarded-proto");
+  map.insert("cache-control", "cache-control");
+  map.insert("connection", "connection");
+  map.insert("accept-encoding", "accept-encoding");
+  map.insert("accept-language", "accept-language");
+  map.insert("origin", "origin");
+  map
+});
 
 #[napi(object)]
 #[derive(Debug, Clone, Serialize)]
@@ -594,13 +632,26 @@ pub struct DetachedRequestWrapper {
 }
 
 impl DetachedRequestWrapper {
-  // 静态解析方法 - 零拷贝优化：预计算时使用，复用现有逻辑
-  fn parse_query_params_static(query_string: &str) -> HashMap<String, String> {
-    let mut params = HashMap::new();
-    for pair in query_string.split('&') {
-      if let Some((key, value)) = pair.split_once('=') {
-        // 使用简单的解码，避免依赖外部库
-        params.insert(key.to_string(), value.to_string());
+  // 🚀 智能预分配的查询参数解析方法 - 零拷贝优化
+  // 根据估算的参数数量预分配容器，减少内存重分配
+  fn parse_query_params_static_with_capacity(
+    query_string: &str,
+    estimated_capacity: usize,
+  ) -> HashMap<String, String> {
+    let mut params = HashMap::with_capacity(estimated_capacity.max(4));
+
+    // 使用 serde_qs 进行完整的查询字符串解析，但预分配容器
+    if let Ok(parsed_params) = serde_qs::from_str::<HashMap<String, String>>(query_string) {
+      // 如果解析成功，将结果合并到预分配的容器中
+      for (key, value) in parsed_params {
+        params.insert(key, value);
+      }
+    } else {
+      // 如果 serde_qs 解析失败，回退到简单解析
+      for pair in query_string.split('&') {
+        if let Some((key, value)) = pair.split_once('=') {
+          params.insert(key.to_string(), value.to_string());
+        }
       }
     }
     params
@@ -773,6 +824,7 @@ impl DetachedRequestWrapper {
   }
 
   /// 从HttpRequest创建DetachedRequestWrapper，提前提取所有需要的数据
+  /// 使用字符串常量池优化内存使用
   pub fn new_detached(
     req: HttpRequest,
     body: Option<Bytes>,
@@ -780,23 +832,43 @@ impl DetachedRequestWrapper {
   ) -> Self {
     // 提前提取所有请求数据
     let path = req.path().to_string();
-    let method = req.method().as_str().to_string();
+
+    // 🚀 字符串池优化：使用常量池中的 HTTP 方法字符串
+    let method = HTTP_METHODS
+      .get(req.method().as_str())
+      .copied()
+      .unwrap_or(req.method().as_str())
+      .to_string();
+
     let query_string = req.query_string().to_string();
     let uri = req.uri().to_string();
 
-    // 提前解析所有请求头
-    let mut headers = HashMap::new();
+    // 🚀 字符串池优化：智能预分配请求头容器
+    let header_count = req.headers().len();
+    let mut headers = HashMap::with_capacity(header_count.max(16));
+
+    // 提前解析所有请求头，使用常量池优化常见请求头名称
     for (name, value) in req.headers() {
       if let Ok(value_str) = value.to_str() {
-        headers.insert(name.as_str().to_string(), value_str.to_string());
+        let header_name_lower = name.as_str().to_lowercase();
+        let header_name = COMMON_HEADERS
+          .get(header_name_lower.as_str())
+          .copied()
+          .unwrap_or(name.as_str());
+        headers.insert(header_name.to_string(), value_str.to_string());
       }
     }
 
-    // 预计算缓存 - 零拷贝优化：在创建时解析，避免运行时原子操作开销
+    // 🚀 预计算缓存 - 零拷贝优化：在创建时解析，避免运行时原子操作开销
     let cached_query_params = if query_string.is_empty() {
       None
     } else {
-      Some(Self::parse_query_params_static(&query_string))
+      // 智能预分配：根据查询字符串中 '&' 的数量估算参数数量
+      let estimated_param_count = query_string.matches('&').count() + 1;
+      Some(Self::parse_query_params_static_with_capacity(
+        &query_string,
+        estimated_param_count,
+      ))
     };
 
     let cached_json = if let Some(ref body_bytes) = body {
