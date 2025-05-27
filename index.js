@@ -356,16 +356,23 @@ if (!nativeBinding) {
 }
 
 module.exports = nativeBinding;
+module.exports.DetachedRequestWrapper = nativeBinding.DetachedRequestWrapper;
 module.exports.RequestWrapper = nativeBinding.RequestWrapper;
 module.exports.Server = nativeBinding.Server;
 module.exports.cleanupRouter = nativeBinding.cleanupRouter;
 module.exports.del = nativeBinding.del;
+module.exports.delAsync = nativeBinding.delAsync;
 module.exports.forceCleanup = nativeBinding.forceCleanup;
 module.exports.forceExit = nativeBinding.forceExit;
 module.exports.get = nativeBinding.get;
+module.exports.getAsync = nativeBinding.getAsync;
 module.exports.Methods = nativeBinding.Methods;
 module.exports.newRoute = nativeBinding.newRoute;
+module.exports.newRouteAsync = nativeBinding.newRouteAsync;
 module.exports.patch = nativeBinding.patch;
+module.exports.patchAsync = nativeBinding.patchAsync;
 module.exports.post = nativeBinding.post;
+module.exports.postAsync = nativeBinding.postAsync;
 module.exports.put = nativeBinding.put;
+module.exports.putAsync = nativeBinding.putAsync;
 module.exports.sum = nativeBinding.sum;

@@ -25,7 +25,9 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@napi-rs/cli": "3.0.0-alpha.80",
+    "@types/autocannon": "^7.12.7",
     "@types/node": "^22.15.21",
+    "autocannon": "^8.0.0",
     "ava": "^6.0.1",
     "axios": "^1.9.0",
     "concurrently": "^9.1.2",
@@ -49,7 +51,12 @@
     "universal": "napi universal",
     "version": "napi version",
     "lint": "concurrently \"cargo fmt --check\" \"biome check ./\"",
-    "lint:fix": "concurrently \"cargo fmt\" \"biome check --write ./\""
+    "lint:fix": "concurrently \"cargo fmt\" \"biome check --write ./\"",
+    "benchmark": "ts-node ./benchmark/benchmark.ts",
+    "benchmark:quick": "ts-node ./benchmark/quick-test.ts",
+    "benchmark:analysis": "ts-node ./benchmark/detailed-analysis.ts",
+    "benchmark:native": "ts-node ./benchmark/native-server.ts",
+    "benchmark:actix": "ts-node ./benchmark/actix-server.ts"
   },
   "packageManager": "pnpm@10.11.0"
 }

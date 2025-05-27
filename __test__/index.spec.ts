@@ -1,7 +1,7 @@
 import test from 'ava';
 import axios from 'axios';
 
-import { FileInfo, Server, cleanupRouter, forceCleanup, forceExit, get, post } from '../index';
+import { FileInfo, Server, cleanupRouter, forceCleanup, forceExit, getAsync, postAsync } from '../index';
 
 const server = new Server({
   host: '127.0.0.1',
@@ -10,56 +10,56 @@ const server = new Server({
 
 test.before(async t => {
   // 首先注册测试路由
-  get('/', (err, req) => {
+  getAsync('/', async (err, req) => {
     if (err) {
-      req.setStatusCode(500);
-      req.sendError('error');
+      await req.setStatusCodeAsync(500);
+      await req.sendErrorAsync('error');
     }
-    req.sendText('hello world');
+    await req.sendTextAsync('hello world');
   });
 
-  get('/json', (err, req) => {
+  getAsync('/json', async (err, req) => {
     if (err) {
-      req.setStatusCode(500);
-      req.sendError('error');
+      await req.setStatusCodeAsync(500);
+      await req.sendErrorAsync('error');
     }
-    req.sendJson('{"message": "hello json"}');
+    await req.sendJsonAsync('{"message": "hello json"}');
   });
 
-  post('/json', (err, req) => {
+  postAsync('/json', async (err, req) => {
     if (err) {
-      req.setStatusCode(500);
-      req.sendError('error');
+      await req.setStatusCodeAsync(500);
+      await req.sendErrorAsync('error');
     }
-    req.sendObject({ message: req.getBodyJson().message });
+    await req.sendObjectAsync({ message: req.getBodyJson().message });
   });
 
-  post('/echo', (err, req) => {
+  postAsync('/echo', async (err, req) => {
     if (err) {
-      req.setStatusCode(500);
-      req.sendError('error');
+      await req.setStatusCodeAsync(500);
+      await req.sendErrorAsync('error');
     }
     const body = req.getBodyString();
-    req.sendText(`Echo: ${body}`);
+    await req.sendTextAsync(`Echo: ${body}`);
   });
 
   // 增加一个处理表单的接口
-  post('/form', (err, req) => {
+  postAsync('/form', async (err, req) => {
     if (err) {
-      req.setStatusCode(500);
-      req.sendError('error');
+      await req.setStatusCodeAsync(500);
+      await req.sendErrorAsync('error');
     }
-    const formData = req.getFormData();
-    req.sendObject(formData);
+    const formData = await req.getFormDataAsync();
+    await req.sendObjectAsync(formData);
   });
 
   // 增加处理文件上传的接口
-  post('/upload', (err, req) => {
+  postAsync('/upload', async (err, req) => {
     if (err) {
-      req.setStatusCode(500);
-      req.sendError('error');
+      await req.setStatusCodeAsync(500);
+      await req.sendErrorAsync('error');
     }
-    const fields = req.getFormData();
+    const fields = await req.getFormDataAsync();
 
     // 检查是否有文件上传
     if (fields['file']) {
@@ -69,7 +69,7 @@ test.before(async t => {
       if (typeof fileField === 'object' && fileField && 'type' in fileField && fileField.type === 'file') {
         // 直接使用文件信息对象，具有完整的类型支持
         const fileInfo = fileField as FileInfo;
-        req.sendObject({
+        await req.sendObjectAsync({
           originalName: fileInfo.originalName,
           filename: fileInfo.filename,
           path: fileInfo.path,
@@ -79,13 +79,13 @@ test.before(async t => {
         });
       } else {
         // 如果是普通文本字段
-        req.sendObject({
+        await req.sendObjectAsync({
           message: 'Not a file field',
           value: fileField,
         });
       }
     } else {
-      req.sendObject({
+      await req.sendObjectAsync({
         error: 'No file uploaded',
       });
     }

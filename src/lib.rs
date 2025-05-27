@@ -120,7 +120,7 @@ impl Server {
   }
 }
 
-// 动态路由处理函数
+// 动态路由处理函数 - 异步优化版本
 async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpResponse {
   let path = req.path();
   let method = req.method().clone();
@@ -139,15 +139,18 @@ async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpRespons
     // 创建oneshot channel用于接收响应
     let (tx, rx) = tokio::sync::oneshot::channel::<JsResponse>();
 
-    // 创建带路径参数和响应发送器的RequestWrapper
-    let mut request_wrapper = RequestWrapper::new_with_params(req, Some(body), path_params);
-    request_wrapper.set_response_sender(tx);
+    // 🚀 关键优化：使用DetachedRequestWrapper，避免BorrowMutError
+    // 提前提取所有请求数据，不持有HttpRequest引用
+    let mut detached_wrapper = DetachedRequestWrapper::new_detached(req, Some(body), path_params);
+    detached_wrapper.set_response_sender(tx);
 
-    // 执行JavaScript回调，传递RequestWrapper
-    router::node_functions::execute_callback_with_request(callback, request_wrapper);
+    // 🚀 异步执行JavaScript回调，不阻塞Rust主线程
+    // JavaScript回调现在可以使用async/await语法
+    router::node_functions::execute_callback_with_detached_request(callback, detached_wrapper);
 
-    // 等待JavaScript回调发送响应，设置5秒超时
-    match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+    // 🚀 非阻塞等待：Rust主线程立即返回，JavaScript异步处理
+    // 设置合理的超时时间，但不阻塞其他请求
+    match tokio::time::timeout(std::time::Duration::from_secs(10), rx).await {
       Ok(Ok(js_response)) => {
         // 将JsResponse转换为HttpResponse
         js_response.into_http_response()
@@ -159,7 +162,7 @@ async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpRespons
           .body(r#"{"error": "JavaScript callback did not send response"}"#)
       }
       Err(_) => {
-        // 超时
+        // 超时 - 增加到10秒，给异步处理更多时间
         HttpResponse::RequestTimeout()
           .content_type("application/json")
           .body(r#"{"error": "Request timeout - JavaScript callback took too long"}"#)

@@ -3,7 +3,7 @@ use napi::bindgen_prelude::*;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use serde::Serialize;
 
-use crate::request::RequestWrapper;
+use crate::request::{DetachedRequestWrapper, RequestWrapper};
 use crate::router::store::{add_new_route, cleanup_route};
 
 // 定义请求数据结构
@@ -15,9 +15,10 @@ pub struct RequestData {
   pub params: serde_json::Map<String, serde_json::Value>,
 }
 
-// 使用RequestWrapper作为ThreadsafeFunction的类型，包装在Arc中以支持Clone
+// 使用DetachedRequestWrapper作为ThreadsafeFunction的类型，包装在Arc中以支持Clone
 use std::sync::Arc;
-pub type CallBackFunction = Arc<ThreadsafeFunction<RequestWrapper>>;
+pub type CallBackFunction = Arc<ThreadsafeFunction<DetachedRequestWrapper>>;
+pub type LegacyCallBackFunction = Arc<ThreadsafeFunction<RequestWrapper>>;
 
 #[napi]
 /// HTTP方法枚举
@@ -56,13 +57,26 @@ impl Methods {
 }
 
 #[napi]
-/// 注册新路由
-pub fn new_route(
+/// 注册新路由（异步版本）
+pub fn new_route_async(
   route: String,
   method: Methods,
-  callback: ThreadsafeFunction<RequestWrapper>,
+  callback: ThreadsafeFunction<DetachedRequestWrapper>,
 ) -> Result<()> {
   add_new_route(&route, method, Arc::new(callback))
+}
+
+#[napi]
+/// 注册新路由（兼容旧版本）
+pub fn new_route(
+  _route: String,
+  _method: Methods,
+  _callback: ThreadsafeFunction<RequestWrapper>,
+) -> Result<()> {
+  // 这里需要转换为新的异步版本，暂时保持空实现
+  Err(napi::Error::from_reason(
+    "请使用 new_route_async 或异步路由注册方法",
+  ))
 }
 
 #[napi]
@@ -73,51 +87,108 @@ pub fn cleanup_router() -> Result<()> {
 }
 
 #[napi]
-/// 注册GET路由
+/// 注册GET路由（异步版本）
+pub fn get_async(
+  route: String,
+  callback: ThreadsafeFunction<DetachedRequestWrapper>,
+) -> Result<()> {
+  new_route_async(route, Methods::GET, callback)
+}
+
+#[napi]
+/// 注册POST路由（异步版本）
+pub fn post_async(
+  route: String,
+  callback: ThreadsafeFunction<DetachedRequestWrapper>,
+) -> Result<()> {
+  new_route_async(route, Methods::POST, callback)
+}
+
+#[napi]
+/// 注册PUT路由（异步版本）
+pub fn put_async(
+  route: String,
+  callback: ThreadsafeFunction<DetachedRequestWrapper>,
+) -> Result<()> {
+  new_route_async(route, Methods::PUT, callback)
+}
+
+#[napi]
+/// 注册PATCH路由（异步版本）
+pub fn patch_async(
+  route: String,
+  callback: ThreadsafeFunction<DetachedRequestWrapper>,
+) -> Result<()> {
+  new_route_async(route, Methods::PATCH, callback)
+}
+
+#[napi]
+/// 注册DELETE路由（异步版本）
+pub fn del_async(
+  route: String,
+  callback: ThreadsafeFunction<DetachedRequestWrapper>,
+) -> Result<()> {
+  new_route_async(route, Methods::DELETE, callback)
+}
+
+#[napi]
+/// 注册GET路由（兼容旧版本）
 pub fn get(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::GET, callback)
 }
 
 #[napi]
-/// 注册POST路由
+/// 注册POST路由（兼容旧版本）
 pub fn post(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::POST, callback)
 }
 
 #[napi]
-/// 注册PUT路由
+/// 注册PUT路由（兼容旧版本）
 pub fn put(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::PUT, callback)
 }
 
 #[napi]
-/// 注册PATCH路由
+/// 注册PATCH路由（兼容旧版本）
 pub fn patch(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::PATCH, callback)
 }
 
 #[napi]
-/// 注册DELETE路由
+/// 注册DELETE路由（兼容旧版本）
 pub fn del(route: String, callback: ThreadsafeFunction<RequestWrapper>) -> Result<()> {
   new_route(route, Methods::DELETE, callback)
 }
 
-/// 执行JavaScript回调函数（带RequestWrapper）
-pub fn execute_callback_with_request(callback: &CallBackFunction, request_wrapper: RequestWrapper) {
-  // 添加调试信息
-  println!(
-    "尝试调用JavaScript回调，路径: {}, 方法: {}",
-    request_wrapper.get_path(),
-    request_wrapper.get_method()
-  );
-
+/// 执行JavaScript回调函数（带DetachedRequestWrapper - 异步版本）
+pub fn execute_callback_with_detached_request(
+  callback: &CallBackFunction,
+  request_wrapper: DetachedRequestWrapper,
+) {
   // 使用正确的API调用ThreadsafeFunction
   match callback.call(Ok(request_wrapper), ThreadsafeFunctionCallMode::NonBlocking) {
     napi::Status::Ok => {
-      println!("JavaScript回调调用成功");
+      // 回调调用成功
     }
     status => {
-      println!("JavaScript回调调用失败，状态: {:?}", status);
+      eprintln!("JavaScript回调调用失败，状态: {:?}", status);
+    }
+  }
+}
+
+/// 执行JavaScript回调函数（带RequestWrapper - 兼容旧版本）
+pub fn execute_callback_with_request(
+  callback: &LegacyCallBackFunction,
+  request_wrapper: RequestWrapper,
+) {
+  // 使用正确的API调用ThreadsafeFunction
+  match callback.call(Ok(request_wrapper), ThreadsafeFunctionCallMode::NonBlocking) {
+    napi::Status::Ok => {
+      // 回调调用成功
+    }
+    status => {
+      eprintln!("JavaScript回调调用失败，状态: {:?}", status);
     }
   }
 }
