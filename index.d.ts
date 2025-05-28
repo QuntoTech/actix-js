@@ -27,26 +27,78 @@ export declare class DetachedRequestWrapper {
   getPathParams(): { [key: string]: string };
   /** 获取指定名称的路径参数值 */
   getPathParam(name: string): string | null;
-  /** 异步发送文本响应 - 返回Promise，支持await */
+  /**
+   * 异步发送文本响应 - 返回Promise，支持await
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行响应发送操作，不涉及内存安全问题。
+   */
   sendTextAsync(text: string): Promise<void>;
-  /** 异步发送JSON响应 - 返回Promise，支持await */
+  /**
+   * 异步发送JSON响应 - 返回Promise，支持await
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行响应发送操作，不涉及内存安全问题。
+   */
   sendJsonAsync(json: string): Promise<void>;
-  /** 异步发送对象作为JSON响应 - 返回Promise，支持await */
+  /**
+   * 异步发送对象作为JSON响应 - 返回Promise，支持await
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行JSON序列化和响应发送操作，不涉及内存安全问题。
+   */
   sendObjectAsync(obj: any): Promise<void>;
-  /** 异步发送空响应 - 返回Promise，支持await */
+  /**
+   * 异步发送空响应 - 返回Promise，支持await
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行响应发送操作，不涉及内存安全问题。
+   */
   sendEmptyAsync(): Promise<void>;
-  /** 异步发送服务器错误响应 - 返回Promise，支持await */
+  /**
+   * 异步发送服务器错误响应 - 返回Promise，支持await
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行响应发送操作，不涉及内存安全问题。
+   */
   sendErrorAsync(message?: string | undefined | null): Promise<void>;
-  /** 异步设置响应状态码 - 返回Promise，支持await */
+  /**
+   * 异步设置响应状态码 - 返回Promise，支持await
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行状态码设置操作，不涉及内存安全问题。
+   */
   setStatusCodeAsync(status: number): Promise<boolean>;
-  /** 异步添加响应头 - 返回Promise，支持await */
+  /**
+   * 异步添加响应头 - 返回Promise，支持await
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行响应头添加操作，不涉及内存安全问题。
+   */
   addHeaderAsync(key: string, value: string): Promise<void>;
   /**
    * 异步获取表单数据参数，支持 application/x-www-form-urlencoded 和 multipart/form-data 格式
    * 对于文件字段，直接返回文件信息对象 - 零拷贝优化：使用预计算缓存，无运行时开销
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行缓存数据读取操作，不涉及内存安全问题。
    */
   getFormDataAsync(): Promise<any>;
-  /** 异步获取表单数据中指定键的值 - 零拷贝优化：使用预计算缓存，无运行时开销 */
+  /**
+   * 异步获取表单数据中指定键的值 - 零拷贝优化：使用预计算缓存，无运行时开销
+   *
+   * # Safety
+   * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
+   * 函数内部只进行缓存数据读取操作，不涉及内存安全问题。
+   */
   getFormValueAsync(key: string): Promise<any | null>;
 }
 
