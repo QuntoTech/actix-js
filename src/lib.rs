@@ -21,6 +21,10 @@ pub use request::*;
 mod response;
 pub use response::*;
 
+// 🚀 导入 JSON 优化模块
+mod json_optimizer;
+pub use json_optimizer::*;
+
 // 服务器句柄类型
 type ServerHandle = Option<actix_web::dev::ServerHandle>;
 
@@ -75,6 +79,7 @@ impl Server {
             // 所有路由都通过动态路由处理器处理
             .default_service(web::route().to(handle_dynamic_route))
         })
+        .workers(1)
         .bind(format!("{}:{}", host_clone, port))
         .unwrap()
         .run();
@@ -121,17 +126,8 @@ async fn handle_dynamic_route(req: HttpRequest, body: web::Bytes) -> HttpRespons
   let path = req.path();
   let method = req.method().clone();
 
-  // 尝试从动态路由中查找回调函数
-  if let Some(callback) = router::read_only::get_route(path, method.clone()) {
-    // 获取路径参数并转换为std::collections::HashMap
-    let path_params = router::read_only::get_params(path, method.clone())
-      .map(|params| {
-        params
-          .into_iter()
-          .collect::<std::collections::HashMap<String, String>>()
-      })
-      .unwrap_or_default();
-
+  // 🚀 优化：一次性获取回调函数和路径参数，避免重复路由匹配
+  if let Some((callback, path_params)) = router::read_only::get_route_with_params(path, method) {
     // 创建oneshot channel用于接收响应
     let (tx, rx) = tokio::sync::oneshot::channel::<JsResponse>();
 

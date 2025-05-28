@@ -15,6 +15,8 @@ actix-web = "4.3.1"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 serde_json = "1.0"
+# 🚀 新增：高性能 SIMD JSON 处理库
+simd-json = "0.13"
 serde = { version = "1.0", features = ["derive"] }
 serde_qs = "0.12"
 bytes = "1.0"

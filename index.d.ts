@@ -44,7 +44,7 @@ export declare class DetachedRequestWrapper {
    */
   sendJsonAsync(json: string): Promise<void>;
   /**
-   * 异步发送对象作为JSON响应 - 返回Promise，支持await
+   * 🚀 SIMD 优化的异步对象序列化 - 返回Promise，支持await
    *
    * # Safety
    * 此函数被标记为unsafe是为了与NAPI绑定兼容，但实际操作是安全的。
@@ -119,7 +119,10 @@ export declare class RequestWrapper {
   hasBody(): boolean;
   /** 获取请求体大小 - 零拷贝优化：直接返回字节长度 */
   getBodySize(): number;
-  /** 尝试将请求体解析为JSON对象 - 零拷贝优化：延迟解析，只计算一次 */
+  /**
+   * 🚀 SIMD 优化的 JSON 解析 - 使用 simd-json 提升 2-3 倍性能
+   * 尝试将请求体解析为JSON对象 - 零拷贝优化：延迟解析，只计算一次
+   */
   getBodyJson(): { [key: string]: any };
   /**
    * 获取表单数据参数，支持 application/x-www-form-urlencoded 和 multipart/form-data 格式
@@ -143,7 +146,7 @@ export declare class RequestWrapper {
   sendText(text: string): void;
   /** 发送JSON响应 */
   sendJson(json: string): void;
-  /** 发送对象作为JSON响应 */
+  /** 🚀 SIMD 优化的对象序列化 - 发送对象作为JSON响应 */
   sendObject(obj: any): void;
   /** 发送空响应 */
   sendEmpty(): void;

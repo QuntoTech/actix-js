@@ -45,6 +45,26 @@ fn get_routers() -> &'static ReadRoutes {
 }
 
 #[inline(always)]
+pub fn get_route_with_params(
+  route: &str,
+  method: Method,
+) -> Option<(
+  &'static CallBackFunction,
+  std::collections::HashMap<String, String>,
+)> {
+  let checking = get_routers().get_for_actix_method(method)?;
+  let found = checking.at(route);
+
+  match found {
+    Ok(res) => {
+      let std_params = params_to_std_map(&res.params);
+      Some((res.value, std_params))
+    }
+    Err(_) => None,
+  }
+}
+
+#[inline(always)]
 pub fn get_route(route: &str, method: Method) -> Option<&'static CallBackFunction> {
   let checking = get_routers().get_for_actix_method(method)?;
   let found = checking.at(route);
@@ -58,6 +78,17 @@ pub fn get_route(route: &str, method: Method) -> Option<&'static CallBackFunctio
 #[inline(always)]
 fn params_to_map(params: &Params) -> HashMap<String, String> {
   let mut map = HashMap::with_capacity(params.len());
+
+  for (key, value) in params.iter() {
+    map.insert(key.to_string(), value.to_string());
+  }
+
+  map
+}
+
+#[inline(always)]
+fn params_to_std_map(params: &Params) -> std::collections::HashMap<String, String> {
+  let mut map = std::collections::HashMap::with_capacity(params.len());
 
   for (key, value) in params.iter() {
     map.insert(key.to_string(), value.to_string());
