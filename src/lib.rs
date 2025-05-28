@@ -1,48 +1,5 @@
 #![deny(clippy::all)]
 
-// 🚀 内存分配器优化配置
-// 使用 mimalloc - 微软开发的高性能内存分配器
-// 只排除指定的四个有问题的目标平台，其他平台（包括 linux-musl）都可以使用 mimalloc
-#[cfg(not(any(
-  target_triple = "x86_64-unknown-linux-gnu",
-  target_triple = "aarch64-unknown-linux-gnu",
-  target_triple = "armv7-unknown-linux-gnueabihf",
-  target_triple = "armv7-linux-androideabi"
-)))]
-use mimalloc::MiMalloc;
-
-// 启用mimalloc作为全局分配器 (高性能，现代设计)
-#[cfg(not(any(
-  target_triple = "x86_64-unknown-linux-gnu",
-  target_triple = "aarch64-unknown-linux-gnu",
-  target_triple = "armv7-unknown-linux-gnueabihf",
-  target_triple = "armv7-linux-androideabi"
-)))]
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
-
-// 编译时显示使用的内存分配器信息
-#[cfg(not(any(
-  target_triple = "x86_64-unknown-linux-gnu",
-  target_triple = "aarch64-unknown-linux-gnu",
-  target_triple = "armv7-unknown-linux-gnueabihf",
-  target_triple = "armv7-linux-androideabi"
-)))]
-const _: () = {
-  const _INFO: &str = "🧠 Using mimalloc allocator for maximum performance";
-};
-
-#[cfg(any(
-  target_triple = "x86_64-unknown-linux-gnu",
-  target_triple = "aarch64-unknown-linux-gnu",
-  target_triple = "armv7-unknown-linux-gnueabihf",
-  target_triple = "armv7-linux-androideabi"
-))]
-const _: () = {
-  const _INFO: &str =
-    "🧠 Using system default allocator (mimalloc disabled for this specific target)";
-};
-
 #[macro_use]
 extern crate napi_derive;
 

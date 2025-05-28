@@ -28,11 +28,6 @@ uuid = { version = "1.0", features = ["v4"] }
 [build-dependencies]
 napi-build = "2.0.1"
 
-# 内存分配器优化 (mimalloc - 现代高性能分配器)
-# 只排除指定的四个有问题的目标平台，其他平台（包括 linux-musl）都可以使用 mimalloc
-[target.'cfg(not(any(target_triple = "x86_64-unknown-linux-gnu", target_triple = "aarch64-unknown-linux-gnu", target_triple = "armv7-unknown-linux-gnueabihf", target_triple = "armv7-linux-androideabi")))'.dependencies]
-mimalloc = { version = "0.1", default-features = false }
-
 [features]
 default = []
 # 开发环境特性
