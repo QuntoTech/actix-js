@@ -29,8 +29,8 @@ uuid = { version = "1.0", features = ["v4"] }
 napi-build = "2.0.1"
 
 # 内存分配器优化 (mimalloc - 现代高性能分配器)
-# 只在支持的平台上启用 mimalloc，排除有问题的 Linux 和 Android 平台
-[target.'cfg(not(any(all(target_arch = "x86_64", target_os = "linux"), all(target_arch = "aarch64", target_os = "linux"), all(target_arch = "arm", target_os = "linux"), target_os = "android")))'.dependencies]
+# 只排除指定的四个有问题的目标平台，其他平台（包括 linux-musl）都可以使用 mimalloc
+[target.'cfg(not(any(target_triple = "x86_64-unknown-linux-gnu", target_triple = "aarch64-unknown-linux-gnu", target_triple = "armv7-unknown-linux-gnueabihf", target_triple = "armv7-linux-androideabi")))'.dependencies]
 mimalloc = { version = "0.1", default-features = false }
 
 [features]
