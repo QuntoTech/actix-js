@@ -1,4 +1,4 @@
-import fastify from 'fastify';
+const fastify = require('fastify');
 
 // 启动服务器
 const start = async () => {

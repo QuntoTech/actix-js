@@ -1,4 +1,4 @@
-import { Server, cleanupRouter, getAsync, postAsync } from '../index';
+const { Server, cleanupRouter, getAsync, postAsync } = require('../index');
 
 // 清理之前的路由
 cleanupRouter();
