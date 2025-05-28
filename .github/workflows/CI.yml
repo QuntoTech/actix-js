@@ -99,7 +99,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential
+        run: sudo apt-get update && sudo apt-get install -y build-essential gcc-multilib g++-multilib gcc libc6-dev
       - name: Setup node
         uses: actions/setup-node@v4
         with:
