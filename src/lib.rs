@@ -2,23 +2,44 @@
 
 // 🚀 内存分配器优化配置
 // 使用 mimalloc - 微软开发的高性能内存分配器
-#[cfg(feature = "mimalloc_allocator")]
+// 只在支持的平台上启用（排除有问题的 Linux 和 Android 平台）
+#[cfg(not(any(
+  all(target_arch = "x86_64", target_os = "linux"),
+  all(target_arch = "aarch64", target_os = "linux"),
+  all(target_arch = "arm", target_os = "linux"),
+  target_os = "android"
+)))]
 use mimalloc::MiMalloc;
 
 // 启用mimalloc作为全局分配器 (高性能，现代设计)
-#[cfg(feature = "mimalloc_allocator")]
+#[cfg(not(any(
+  all(target_arch = "x86_64", target_os = "linux"),
+  all(target_arch = "aarch64", target_os = "linux"),
+  all(target_arch = "arm", target_os = "linux"),
+  target_os = "android"
+)))]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
 // 编译时显示使用的内存分配器信息
-#[cfg(feature = "mimalloc_allocator")]
+#[cfg(not(any(
+  all(target_arch = "x86_64", target_os = "linux"),
+  all(target_arch = "aarch64", target_os = "linux"),
+  all(target_arch = "arm", target_os = "linux"),
+  target_os = "android"
+)))]
 const _: () = {
   const _INFO: &str = "🧠 Using mimalloc allocator for maximum performance";
 };
 
-#[cfg(not(feature = "mimalloc_allocator"))]
+#[cfg(any(
+  all(target_arch = "x86_64", target_os = "linux"),
+  all(target_arch = "aarch64", target_os = "linux"),
+  all(target_arch = "arm", target_os = "linux"),
+  target_os = "android"
+))]
 const _: () = {
-  const _INFO: &str = "🧠 Using system default allocator";
+  const _INFO: &str = "🧠 Using system default allocator (mimalloc disabled for this platform)";
 };
 
 #[macro_use]

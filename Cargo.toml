@@ -11,9 +11,6 @@ crate-type = ["cdylib"]
 napi = { version = "3.0.0-beta.2", default-features = false, features = ["napi4", "tokio_rt", "serde-json"] }
 napi-derive = "3.0.0-beta.2"
 
-# 内存分配器优化 (mimalloc - 现代高性能分配器)
-mimalloc = { version = "0.1", default-features = false, optional = true }
-
 actix-web = "4.3.1"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
@@ -31,10 +28,13 @@ uuid = { version = "1.0", features = ["v4"] }
 [build-dependencies]
 napi-build = "2.0.1"
 
+# 内存分配器优化 (mimalloc - 现代高性能分配器)
+# 只在支持的平台上启用 mimalloc，排除有问题的 Linux 和 Android 平台
+[target.'cfg(not(any(all(target_arch = "x86_64", target_os = "linux"), all(target_arch = "aarch64", target_os = "linux"), all(target_arch = "arm", target_os = "linux"), target_os = "android")))'.dependencies]
+mimalloc = { version = "0.1", default-features = false }
+
 [features]
-default = ["mimalloc_allocator"]
-# 内存分配器特性
-mimalloc_allocator = ["mimalloc"]
+default = []
 # 开发环境特性
 dev-optimizations = []
 
