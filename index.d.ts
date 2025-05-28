@@ -167,6 +167,9 @@ export declare class Server {
 /** 清理所有路由 */
 export declare function cleanupRouter(): void;
 
+/** 清理路由缓存 - 在需要强制刷新缓存时调用 */
+export declare function clearRouterCache(): void;
+
 /** 注册DELETE路由（兼容旧版本） */
 export declare function del(route: string, callback: (err: Error | null, arg: RequestWrapper) => any): void;
 

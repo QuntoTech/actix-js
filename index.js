@@ -360,6 +360,7 @@ module.exports.DetachedRequestWrapper = nativeBinding.DetachedRequestWrapper;
 module.exports.RequestWrapper = nativeBinding.RequestWrapper;
 module.exports.Server = nativeBinding.Server;
 module.exports.cleanupRouter = nativeBinding.cleanupRouter;
+module.exports.clearRouterCache = nativeBinding.clearRouterCache;
 module.exports.del = nativeBinding.del;
 module.exports.delAsync = nativeBinding.delAsync;
 module.exports.forceCleanup = nativeBinding.forceCleanup;

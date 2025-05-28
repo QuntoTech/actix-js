@@ -4,6 +4,7 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use serde::Serialize;
 
 use crate::request::{DetachedRequestWrapper, RequestWrapper};
+use crate::router::read_only::clear_route_cache;
 use crate::router::store::{add_new_route, cleanup_route};
 
 // 定义请求数据结构
@@ -203,4 +204,13 @@ pub fn execute_callback(
   // 创建一个临时的RequestWrapper（这里只是为了兼容，实际使用中应该传递真实的RequestWrapper）
   println!("警告：使用了旧的execute_callback接口，建议使用execute_callback_with_request");
   // 这里我们不能创建假的RequestWrapper，所以暂时保持空实现
+}
+
+// 🚀 新增：LRU缓存管理接口
+
+#[napi]
+/// 清理路由缓存 - 在需要强制刷新缓存时调用
+pub fn clear_router_cache() -> Result<()> {
+  clear_route_cache();
+  Ok(())
 }

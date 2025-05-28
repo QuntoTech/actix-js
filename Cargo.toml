@@ -26,6 +26,8 @@ parking_lot = "0.12"
 halfbrown = "0.2"
 multer = "3.0"
 uuid = { version = "1.0", features = ["v4"] }
+# 🚀 新增：LRU缓存库，用于优化路由匹配性能
+lru = "0.12"
 
 [build-dependencies]
 napi-build = "2.0.1"
