@@ -126,7 +126,7 @@ async fn main() -> std::io::Result<()> {
             .route("/json", web::post().to(json_post_handler))
             .default_service(web::route().to(not_found))
     })
-    .workers(1)
+    // .workers(1)
     .bind((host, port))?
     .run()
     .await

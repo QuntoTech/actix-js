@@ -75,11 +75,11 @@ impl Server {
       napi::tokio::spawn(async move {
         let server = HttpServer::new(|| {
           App::new()
-            .wrap(middleware::Logger::default())
+            // .wrap(middleware::Logger::default())
             // 所有路由都通过动态路由处理器处理
             .default_service(web::route().to(handle_dynamic_route))
         })
-        .workers(1)
+        // .workers(1)
         .bind(format!("{}:{}", host_clone, port))
         .unwrap()
         .run();
