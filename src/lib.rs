@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate napi_derive;
 
-use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use napi::Result;
 use parking_lot::Mutex;
 use std::net::TcpListener;

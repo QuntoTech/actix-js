@@ -729,21 +729,12 @@ impl DetachedRequestWrapper {
   }
 
   fn parse_json_static(body: &Bytes) -> Option<serde_json::Value> {
-    // 🚀 SIMD 优化：智能选择解析策略
-    let complexity = estimate_json_complexity(body);
-
-    if complexity > 10 {
-      // 对于复杂 JSON，使用 SIMD 优化解析
-      match parse_json_from_bytes(body) {
-        Ok(simd_value) => Some(simd_to_serde_value(simd_value)),
-        Err(_) => {
-          // SIMD 解析失败，回退到标准解析
-          serde_json::from_slice(body).ok()
-        }
+    match parse_json_from_bytes(body) {
+      Ok(simd_value) => Some(simd_to_serde_value(simd_value)),
+      Err(_) => {
+        // SIMD 解析失败，回退到标准解析
+        serde_json::from_slice(body).ok()
       }
-    } else {
-      // 对于简单 JSON，使用标准解析
-      serde_json::from_slice(body).ok()
     }
   }
 
